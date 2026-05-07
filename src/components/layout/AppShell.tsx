@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect } from 'react'
 import Sidebar from './Sidebar'
+import OnboardingWizard from '@/components/onboarding/OnboardingWizard'
 import { useProfilesStore } from '@/stores/profiles.store'
 import { useTemplatesStore } from '@/stores/templates.store'
 import { useSettingsStore } from '@/stores/settings.store'
@@ -21,6 +22,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <main className="flex-1 overflow-auto">
         {children}
       </main>
+      <OnboardingWizard />
     </div>
   )
 }

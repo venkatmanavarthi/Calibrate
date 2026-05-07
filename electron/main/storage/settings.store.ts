@@ -21,7 +21,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   pdfPageSize: 'Letter',
   pdfMarginMm: 15,
   pdfFont: 'Georgia',
-  configuredProviders: []
+  configuredProviders: [],
+  onboardingCompleted: false
 }
 
 export async function loadSettings(): Promise<AppSettings> {

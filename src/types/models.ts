@@ -113,6 +113,7 @@ export interface AppSettings {
   pdfMarginMm: number
   pdfFont: 'Georgia' | 'Arial' | 'Helvetica' | 'Times New Roman' | 'Calibri' | 'Garamond'
   configuredProviders: AIProvider[]
+  onboardingCompleted: boolean
 }
 
 export interface HallucinationWarning {

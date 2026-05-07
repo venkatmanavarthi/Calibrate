@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Plus, Pencil, Trash2, Copy } from 'lucide-react'
+import { Plus, Pencil, Trash2, Copy, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTemplatesStore } from '@/stores/templates.store'
 import { generateId, now } from '@/lib/utils'
@@ -76,9 +76,15 @@ export default function TemplateList() {
       </div>
 
       {templates.length === 0 ? (
-        <div className="border border-dashed rounded-xl p-12 text-center">
-          <p className="text-muted-foreground">No templates yet. Create your first one.</p>
-          <Button className="mt-4" onClick={handleCreate}>
+        <div className="border border-dashed rounded-xl p-10 text-center space-y-3">
+          <FileText size={28} className="mx-auto text-muted-foreground/40" />
+          <div className="space-y-1">
+            <p className="font-medium">No templates yet</p>
+            <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+              Templates define the structure and style of your resume. Start from one of the built-in examples or write your own in Markdown.
+            </p>
+          </div>
+          <Button size="sm" onClick={handleCreate} className="mt-1">
             Create Template
           </Button>
         </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Pencil, Trash2, Upload, Download, FileText } from 'lucide-react'
+import { Plus, Pencil, Trash2, Upload, Download, FileText, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useProfilesStore } from '@/stores/profiles.store'
 import { generateId, now } from '@/lib/utils'
@@ -82,11 +82,22 @@ export default function ProfileList() {
       </div>
 
       {profiles.length === 0 ? (
-        <div className="border border-dashed rounded-xl p-12 text-center">
-          <p className="text-muted-foreground">No profiles yet. Create your first one.</p>
-          <Button className="mt-4" onClick={() => navigate('/profiles/new')}>
-            Create Profile
-          </Button>
+        <div className="border border-dashed rounded-xl p-10 text-center space-y-3">
+          <User size={28} className="mx-auto text-muted-foreground/40" />
+          <div className="space-y-1">
+            <p className="font-medium">No profiles yet</p>
+            <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+              Experience profiles hold your work history, skills, and projects. The AI uses them to tailor your resume to each job.
+            </p>
+          </div>
+          <div className="flex gap-2 justify-center pt-1">
+            <Button variant="outline" size="sm" onClick={handleImportFromPdf} disabled={importingPdf} className="gap-1.5">
+              <FileText size={14} /> {importingPdf ? 'Parsing…' : 'Import from PDF'}
+            </Button>
+            <Button size="sm" onClick={() => navigate('/profiles/new')}>
+              Create Profile
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="grid gap-3">

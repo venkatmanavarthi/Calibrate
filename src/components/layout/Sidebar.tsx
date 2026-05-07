@@ -15,13 +15,13 @@ export default function Sidebar() {
   return (
     <aside className="w-[220px] flex-shrink-0 flex flex-col h-full bg-sidebar border-r border-sidebar-border">
       {/* pt-8 clears macOS traffic lights (hiddenInset ~28px) */}
-      <div className="px-4 pt-8 pb-4 border-b border-sidebar-border" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
+      <div className="px-4 pt-8 pb-3" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
         <h1 className="text-sidebar-foreground font-semibold text-[15px] leading-tight" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           Calibrate
         </h1>
       </div>
 
-      <nav className="flex-1 py-3 space-y-0.5 px-2">
+      <nav className="flex-1 py-2 px-2">
         {navItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
@@ -29,21 +29,21 @@ export default function Sidebar() {
             end={to === '/'}
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                'flex items-center gap-2.5 px-2.5 py-[7px] rounded-md text-sm transition-colors',
                 isActive
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold'
-                  : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/60'
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
+                  : 'text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/50'
               )
             }
           >
-            <Icon size={16} />
+            <Icon size={15} strokeWidth={1.7} />
             {label}
           </NavLink>
         ))}
       </nav>
 
-      <div className="px-4 py-3 border-t border-sidebar-border">
-        <p className="text-sidebar-foreground/40 text-xs">v0.1.0</p>
+      <div className="px-4 py-3">
+        <p className="text-sidebar-foreground/30 text-xs">v0.1.0</p>
       </div>
     </aside>
   )

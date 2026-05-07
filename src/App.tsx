@@ -6,6 +6,7 @@ import ProfileEditor from '@/pages/profiles/ProfileEditor'
 import TemplateList from '@/pages/templates/TemplateList'
 import TemplateEditor from '@/pages/templates/TemplateEditor'
 import GeneratorPage from '@/pages/generator/GeneratorPage'
+import PromptsPage from '@/pages/prompts/PromptsPage'
 import SettingsPage from '@/pages/settings/SettingsPage'
 
 export default function App() {
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/templates/new" element={<TemplateEditor />} />
         <Route path="/templates/:id" element={<TemplateEditor />} />
         <Route path="/generate" element={<GeneratorPage />} />
+        <Route path="/prompts" element={<PromptsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Routes>
     </AppShell>

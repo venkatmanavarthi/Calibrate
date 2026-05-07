@@ -1,23 +1,21 @@
 import type { ExperienceProfile } from '../../../../src/types/models'
+import { DEFAULT_REVISION_PROMPT } from '../../../../src/lib/default-prompts'
 
 export function buildRevisionMessages(
   profileSubset: Partial<ExperienceProfile>,
   selectedText: string,
   surroundingContext: string,
-  instruction: string
+  instruction: string,
+  customPrompt?: string
 ) {
-  const systemPrompt = `You are a professional resume editor. You will be given a segment of a resume and an editing instruction. Revise ONLY the given segment according to the instruction. You must NOT add any experience, skill, or achievement that is not present in the source profile excerpt below.
+  const staticPart = customPrompt?.trim() || DEFAULT_REVISION_PROMPT
+
+  const systemPrompt = `${staticPart}
 
 SOURCE PROFILE EXCERPT (what you may draw from):
 \`\`\`json
 ${JSON.stringify(profileSubset, null, 2)}
-\`\`\`
-
-Rules:
-1. Return ONLY the revised segment. No preamble, no explanation, no surrounding text.
-2. Preserve Markdown formatting structure (headings, bullets, bold, etc.).
-3. Do not remove bullets unless the instruction explicitly says to condense.
-4. Do not add metrics or facts not present in the profile excerpt.`
+\`\`\``
 
   const userPrompt = `SURROUNDING CONTEXT (for tone and style reference only — do not modify or repeat this):
 \`\`\`

@@ -1,0 +1,9 @@
+node_modules/
+out/
+release/
+dist/
+.DS_Store
+*.local
+*.local.*
+.claude/settings.local.json
+bun.lockb

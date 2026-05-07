@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Background: warm charcoal rounded rectangle -->
+  <rect width="1024" height="1024" rx="200" ry="200" fill="#221f1c"/>
+
+  <!-- Document body: white paper -->
+  <rect x="260" y="200" width="390" height="500" rx="18" ry="18" fill="#ffffff"/>
+
+  <!-- Folded corner (dog-ear): orange triangle + white triangle overlay -->
+  <polygon points="650,200 650,310 540,200" fill="#e8703a"/>
+  <polygon points="650,310 540,200 540,310" fill="#d4cfc9"/>
+
+  <!-- Resume lines — dark charcoal on white -->
+  <!-- Name line (bold, wider) -->
+  <rect x="292" y="258" width="240" height="22" rx="6" fill="#2d2925"/>
+
+  <!-- Subtitle line -->
+  <rect x="292" y="294" width="170" height="14" rx="4" fill="#6b6560"/>
+
+  <!-- Divider -->
+  <rect x="292" y="326" width="310" height="3" rx="2" fill="#e8703a"/>
+
+  <!-- Section header -->
+  <rect x="292" y="350" width="110" height="13" rx="4" fill="#e8703a"/>
+
+  <!-- Content lines -->
+  <rect x="292" y="378" width="290" height="12" rx="4" fill="#c4bfba"/>
+  <rect x="292" y="400" width="260" height="12" rx="4" fill="#c4bfba"/>
+  <rect x="292" y="422" width="280" height="12" rx="4" fill="#c4bfba"/>
+
+  <!-- Section header 2 -->
+  <rect x="292" y="455" width="130" height="13" rx="4" fill="#e8703a"/>
+
+  <!-- Content lines 2 -->
+  <rect x="292" y="483" width="300" height="12" rx="4" fill="#c4bfba"/>
+  <rect x="292" y="505" width="250" height="12" rx="4" fill="#c4bfba"/>
+  <rect x="292" y="527" width="270" height="12" rx="4" fill="#c4bfba"/>
+
+  <!-- Section header 3 -->
+  <rect x="292" y="560" width="100" height="13" rx="4" fill="#e8703a"/>
+
+  <!-- Content lines 3 -->
+  <rect x="292" y="588" width="290" height="12" rx="4" fill="#c4bfba"/>
+  <rect x="292" y="610" width="220" height="12" rx="4" fill="#c4bfba"/>
+
+  <!-- Scissors icon at bottom right — indicating "tailor" -->
+  <g transform="translate(680, 720) rotate(-35)">
+    <!-- Scissors handle left -->
+    <circle cx="-28" cy="-14" r="28" fill="none" stroke="#e8703a" stroke-width="16"/>
+    <!-- Scissors handle right -->
+    <circle cx="28" cy="14" r="28" fill="none" stroke="#e8703a" stroke-width="16"/>
+    <!-- Scissors blade -->
+    <line x1="-4" y1="-2" x2="120" y2="-40" stroke="#e8703a" stroke-width="16" stroke-linecap="round"/>
+    <line x1="4" y1="2" x2="120" y2="40" stroke="#e8703a" stroke-width="16" stroke-linecap="round"/>
+    <!-- Pivot -->
+    <circle cx="0" cy="0" r="10" fill="#e8703a"/>
+  </g>
+</svg>

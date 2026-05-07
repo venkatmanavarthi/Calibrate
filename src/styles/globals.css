@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Warm off-white content area */
+    --background: 36 25% 97%;
+    --foreground: 20 10% 12%;
+
+    --card: 36 25% 97%;
+    --card-foreground: 20 10% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 10% 12%;
+
+    /* Claude orange */
+    --primary: 25 90% 48%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 36 20% 92%;
+    --secondary-foreground: 20 10% 20%;
+
+    --muted: 36 20% 93%;
+    --muted-foreground: 20 8% 46%;
+
+    --accent: 36 20% 91%;
+    --accent-foreground: 20 10% 16%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 36 15% 88%;
+    --input: 36 15% 88%;
+    --ring: 25 90% 48%;
+    --radius: 0.5rem;
+
+    /* Sidebar — dark charcoal with warm undertone */
+    --sidebar-background: 20 12% 13%;
+    --sidebar-foreground: 36 20% 90%;
+    --sidebar-primary: 25 90% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 20 10% 19%;
+    --sidebar-accent-foreground: 36 20% 94%;
+    --sidebar-border: 20 10% 18%;
+    --sidebar-ring: 25 90% 58%;
+  }
+
+  .dark {
+    --background: 20 10% 10%;
+    --foreground: 36 20% 93%;
+
+    --card: 20 10% 12%;
+    --card-foreground: 36 20% 93%;
+
+    --popover: 20 10% 11%;
+    --popover-foreground: 36 20% 93%;
+
+    --primary: 25 90% 56%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 20 10% 17%;
+    --secondary-foreground: 36 20% 88%;
+
+    --muted: 20 10% 16%;
+    --muted-foreground: 36 12% 54%;
+
+    --accent: 20 10% 17%;
+    --accent-foreground: 36 20% 90%;
+
+    --destructive: 0 62% 40%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 20 10% 20%;
+    --input: 20 10% 20%;
+    --ring: 25 90% 56%;
+
+    --sidebar-background: 20 12% 9%;
+    --sidebar-foreground: 36 20% 88%;
+    --sidebar-primary: 25 90% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 20 10% 14%;
+    --sidebar-accent-foreground: 36 20% 94%;
+    --sidebar-border: 20 10% 13%;
+    --sidebar-ring: 25 90% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.4); }

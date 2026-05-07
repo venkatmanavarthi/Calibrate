@@ -1,4 +1,5 @@
 import type React from 'react'
+import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, User, FileText, Wand2, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -12,6 +13,12 @@ const navItems = [
 ]
 
 export default function Sidebar() {
+  const [version, setVersion] = useState<string>('...')
+
+  useEffect(() => {
+    window.api.updatesGetVersion().then(setVersion)
+  }, [])
+
   return (
     <aside className="w-[220px] flex-shrink-0 flex flex-col h-full bg-sidebar border-r border-sidebar-border">
       {/* pt-8 clears macOS traffic lights (hiddenInset ~28px) */}
@@ -43,7 +50,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="px-4 py-3">
-        <p className="text-sidebar-foreground/30 text-xs">v0.1.0</p>
+        <p className="text-sidebar-foreground/30 text-xs">v{version}</p>
       </div>
     </aside>
   )

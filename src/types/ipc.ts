@@ -10,6 +10,22 @@ import type {
   ExportBundle
 } from './models'
 
+export type UpdateState =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'not-available'
+  | 'downloading'
+  | 'downloaded'
+  | 'error'
+
+export interface UpdateProgress {
+  percent: number
+  bytesPerSecond: number
+  transferred: number
+  total: number
+}
+
 export interface WindowAPI {
   // Profiles
   profilesList: () => Promise<ExperienceProfile[]>
@@ -49,6 +65,15 @@ export interface WindowAPI {
   // Import / Export
   exportData: () => Promise<{ filePath: string | null }>
   importData: () => Promise<{ imported: boolean; profileCount: number; templateCount: number }>
+
+  // Updates
+  updatesCheck: () => Promise<void>
+  updatesDownload: () => Promise<void>
+  updatesInstallAndRestart: () => Promise<void>
+  updatesGetVersion: () => Promise<string>
+  onUpdatesStatus: (cb: (payload: { state: UpdateState }) => void) => () => void
+  onUpdatesProgress: (cb: (payload: UpdateProgress) => void) => () => void
+  onUpdatesError: (cb: (payload: { message: string }) => void) => () => void
 }
 
 declare global {

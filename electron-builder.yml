@@ -2,6 +2,12 @@ appId: com.calibrate.app
 productName: Calibrate
 copyright: Copyright © 2026 Calibrate
 
+publish:
+  provider: github
+  owner: venkatmanavarthi
+  repo: resume-maker
+  releaseType: release
+
 directories:
   output: release
 

@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { WindowAPI } from '../../src/types/ipc'
+import type { WindowAPI, UpdateState, UpdateProgress } from '../../src/types/ipc'
 
 const api: WindowAPI = {
   // Profiles
@@ -51,7 +51,28 @@ const api: WindowAPI = {
 
   // Import / Export
   exportData: () => ipcRenderer.invoke('export:data'),
-  importData: () => ipcRenderer.invoke('import:data')
+  importData: () => ipcRenderer.invoke('import:data'),
+
+  // Updates
+  updatesCheck: () => ipcRenderer.invoke('updates:check'),
+  updatesDownload: () => ipcRenderer.invoke('updates:download'),
+  updatesInstallAndRestart: () => ipcRenderer.invoke('updates:installAndRestart'),
+  updatesGetVersion: () => ipcRenderer.invoke('updates:getVersion'),
+  onUpdatesStatus: (cb) => {
+    const handler = (_: Electron.IpcRendererEvent, payload: { state: UpdateState }) => cb(payload)
+    ipcRenderer.on('updates:status', handler)
+    return () => ipcRenderer.removeListener('updates:status', handler)
+  },
+  onUpdatesProgress: (cb) => {
+    const handler = (_: Electron.IpcRendererEvent, payload: UpdateProgress) => cb(payload)
+    ipcRenderer.on('updates:progress', handler)
+    return () => ipcRenderer.removeListener('updates:progress', handler)
+  },
+  onUpdatesError: (cb) => {
+    const handler = (_: Electron.IpcRendererEvent, payload: { message: string }) => cb(payload)
+    ipcRenderer.on('updates:error', handler)
+    return () => ipcRenderer.removeListener('updates:error', handler)
+  }
 }
 
 contextBridge.exposeInMainWorld('api', api)

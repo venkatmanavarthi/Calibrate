@@ -41,17 +41,17 @@ jobs:
 
       - name: Package (Mac)
         if: matrix.platform == 'mac'
-        run: bunx electron-builder --mac --config.mac.hardenedRuntime=false
+        run: bunx electron-builder --mac --publish never --config.mac.hardenedRuntime=false
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
       - name: Package (Windows)
         if: matrix.platform == 'win'
-        run: bunx electron-builder --win
+        run: bunx electron-builder --win --publish never
 
       - name: Package (Linux)
         if: matrix.platform == 'linux'
-        run: bunx electron-builder --linux
+        run: bunx electron-builder --linux --publish never
 
       - name: Upload artifacts to release
         uses: softprops/action-gh-release@v2
@@ -67,5 +67,7 @@ jobs:
             release/*.exe
             release/*.AppImage
             release/*.deb
+            release/*.yml
+            release/*.blockmap
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

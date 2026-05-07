@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect } from 'react'
 import Sidebar from './Sidebar'
+import UpdateBanner from './UpdateBanner'
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard'
 import { useProfilesStore } from '@/stores/profiles.store'
 import { useTemplatesStore } from '@/stores/templates.store'
@@ -19,9 +20,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar />
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <UpdateBanner />
+        <main className="flex-1 overflow-auto">
+          {children}
+        </main>
+      </div>
       <OnboardingWizard />
     </div>
   )

@@ -35,6 +35,7 @@ export default function GeneratorPage() {
       if (requestId === useGeneratorStore.getState().currentRequestId) {
         const state = useGeneratorStore.getState()
         if (!state.isRevising) {
+          setGeneratedMarkdown(fullText)
           setGenerating(false, null)
           setWarnings(warnings)
         }

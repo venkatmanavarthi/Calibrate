@@ -111,6 +111,7 @@ export interface AppSettings {
   theme: 'system' | 'light' | 'dark'
   pdfPageSize: 'Letter' | 'A4'
   pdfMarginMm: number
+  pdfFont: 'Georgia' | 'Arial' | 'Helvetica' | 'Times New Roman' | 'Calibri' | 'Garamond'
   configuredProviders: AIProvider[]
 }
 
@@ -145,6 +146,7 @@ export interface PdfExportRequest {
   destFilePath: string
   pageSize: 'Letter' | 'A4'
   marginMm: number
+  font: string
 }
 
 export interface ExportBundle {

@@ -239,36 +239,6 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <Separator />
-
-      {/* PDF Settings */}
-      <div className="space-y-4">
-        <h3 className="font-semibold">PDF Export</h3>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label>Page Size</Label>
-            <Select value={settings.pdfPageSize} onValueChange={(v) => save({ pdfPageSize: v as 'Letter' | 'A4' })}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Letter">Letter</SelectItem>
-                <SelectItem value="A4">A4</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Margin (mm)</Label>
-            <Input
-              type="number"
-              min={5}
-              max={40}
-              value={settings.pdfMarginMm}
-              onChange={(e) => save({ pdfMarginMm: Number(e.target.value) })}
-            />
-          </div>
-        </div>
-      </div>
     </div>
   )
 }

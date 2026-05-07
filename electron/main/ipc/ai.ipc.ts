@@ -8,6 +8,12 @@ import { getTemplate } from '../storage/templates.store'
 import { loadSettings } from '../storage/settings.store'
 import type { GenerateRequest, RevisionRequest, AIProvider } from '../../../src/types/models'
 
+// AIs frequently wrap their output in ```markdown ... ``` fences despite being told not to.
+// Strip them so the renderer always receives clean markdown.
+function stripCodeFences(text: string): string {
+  return text.replace(/^```(?:markdown|md)?\r?\n?/, '').replace(/\r?\n?```\s*$/, '').trim()
+}
+
 const activeControllers = new Map<string, AbortController>()
 
 export function registerAiIpc(win: BrowserWindow): void {
@@ -34,8 +40,9 @@ export function registerAiIpc(win: BrowserWindow): void {
         (delta) => win.webContents.send('ai:chunk', { requestId: req.requestId, delta })
       )
 
-      const warnings = validateOutput(fullText, profile)
-      win.webContents.send('ai:done', { requestId: req.requestId, fullText, warnings })
+      const cleanText = stripCodeFences(fullText)
+      const warnings = validateOutput(cleanText, profile)
+      win.webContents.send('ai:done', { requestId: req.requestId, fullText: cleanText, warnings })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err)
       win.webContents.send('ai:error', { requestId: req.requestId, message })
@@ -64,7 +71,7 @@ export function registerAiIpc(win: BrowserWindow): void {
         (delta) => win.webContents.send('ai:chunk', { requestId: req.requestId, delta })
       )
 
-      win.webContents.send('ai:done', { requestId: req.requestId, fullText, warnings: [] })
+      win.webContents.send('ai:done', { requestId: req.requestId, fullText: stripCodeFences(fullText), warnings: [] })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err)
       win.webContents.send('ai:error', { requestId: req.requestId, message })

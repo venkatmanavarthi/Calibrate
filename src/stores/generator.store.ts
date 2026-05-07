@@ -18,7 +18,7 @@ interface GeneratorState {
   selectionTo: number
   revisionInstruction: string
 
-  viewMode: 'edit' | 'preview'
+  viewMode: 'edit' | 'preview' | 'pdf'
 
   setProfile: (id: string) => void
   setTemplate: (id: string) => void
@@ -32,7 +32,7 @@ interface GeneratorState {
   setRevising: (v: boolean) => void
   setSelection: (from: number, to: number) => void
   setRevisionInstruction: (s: string) => void
-  setViewMode: (m: 'edit' | 'preview') => void
+  setViewMode: (m: 'edit' | 'preview' | 'pdf') => void
   clearWarnings: () => void
 
   // Section revision: replace [from, to) in generatedMarkdown

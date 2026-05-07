@@ -6,7 +6,7 @@ import type { PdfExportRequest } from '../../../src/types/models'
 
 export async function exportToPdf(req: PdfExportRequest): Promise<void> {
   const bodyHtml = await marked.parse(req.markdownContent)
-  const fullHtml = buildPrintableHtml(bodyHtml, req.marginMm)
+  const fullHtml = buildPrintableHtml(bodyHtml, req.marginMm, req.font)
 
   const tempPath = path.join(app.getPath('temp'), `resume-print-${Date.now()}.html`)
   await fs.writeFile(tempPath, fullHtml, 'utf-8')
@@ -35,7 +35,8 @@ export async function exportToPdf(req: PdfExportRequest): Promise<void> {
   await fs.writeFile(req.destFilePath, pdfBuffer)
 }
 
-function buildPrintableHtml(body: string, marginMm: number): string {
+function buildPrintableHtml(body: string, marginMm: number, font: string): string {
+  const fontStack = `'${font}', Georgia, 'Times New Roman', serif`
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -44,21 +45,24 @@ function buildPrintableHtml(body: string, marginMm: number): string {
   @page { margin: ${marginMm}mm; }
   * { box-sizing: border-box; }
   body {
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: ${fontStack};
     font-size: 11pt;
     line-height: 1.5;
     color: #111;
     margin: 0;
     padding: 0;
+    overflow-wrap: break-word;
+    word-break: break-word;
   }
   h1 { font-size: 18pt; margin: 0 0 4pt; }
   h2 { font-size: 13pt; border-bottom: 1px solid #aaa; margin: 12pt 0 4pt; padding-bottom: 2pt; }
   h3 { font-size: 11pt; margin: 8pt 0 2pt; }
-  p { margin: 0 0 6pt; }
+  p { margin: 0 0 6pt; overflow-wrap: break-word; word-break: break-word; }
   ul { margin: 2pt 0 6pt; padding-left: 18pt; }
-  li { margin-bottom: 2pt; }
+  li { margin-bottom: 2pt; overflow-wrap: break-word; word-break: break-word; }
   a { color: #111; text-decoration: none; }
   strong { font-weight: bold; }
+  pre, code { white-space: pre-wrap; overflow-wrap: break-word; font-family: inherit; font-size: inherit; }
 </style>
 </head>
 <body>${body}</body>

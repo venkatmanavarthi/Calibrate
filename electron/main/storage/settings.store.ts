@@ -20,6 +20,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   theme: 'system',
   pdfPageSize: 'Letter',
   pdfMarginMm: 15,
+  pdfFont: 'Georgia',
   configuredProviders: []
 }
 

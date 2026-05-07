@@ -103,6 +103,11 @@ export interface LMStudioConfig {
   modelName: string
 }
 
+export interface CustomPrompts {
+  generation?: string
+  revision?: string
+}
+
 export interface AppSettings {
   preferredProvider: AIProvider
   preferredModels: Record<AIProvider, string>
@@ -114,6 +119,7 @@ export interface AppSettings {
   pdfFont: 'Georgia' | 'Arial' | 'Helvetica' | 'Times New Roman' | 'Calibri' | 'Garamond'
   configuredProviders: AIProvider[]
   onboardingCompleted: boolean
+  customPrompts?: CustomPrompts
 }
 
 export interface HallucinationWarning {

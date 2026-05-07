@@ -32,7 +32,7 @@ export function registerAiIpc(win: BrowserWindow): void {
       if (!template) throw new Error(`Template ${req.templateId} not found`)
 
       const provider = await buildProvider(req.provider, settings)
-      const messages = buildGenerationMessages(profile, template.markdownContent, req.jobDescription)
+      const messages = buildGenerationMessages(profile, template.markdownContent, req.jobDescription, settings.customPrompts?.generation)
 
       const fullText = await provider.generate(
         messages,
@@ -62,7 +62,8 @@ export function registerAiIpc(win: BrowserWindow): void {
         req.profileSubset,
         req.selectedText,
         req.surroundingContext,
-        req.instruction
+        req.instruction,
+        settings.customPrompts?.revision
       )
 
       const fullText = await provider.generate(

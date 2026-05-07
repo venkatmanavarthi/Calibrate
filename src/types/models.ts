@@ -108,6 +108,13 @@ export interface CustomPrompts {
   revision?: string
 }
 
+export interface PromptSnapshot {
+  id: string
+  savedAt: string
+  generation: string
+  revision: string
+}
+
 export interface AppSettings {
   preferredProvider: AIProvider
   preferredModels: Record<AIProvider, string>
@@ -120,6 +127,7 @@ export interface AppSettings {
   configuredProviders: AIProvider[]
   onboardingCompleted: boolean
   customPrompts?: CustomPrompts
+  promptHistory?: PromptSnapshot[]
 }
 
 export interface HallucinationWarning {

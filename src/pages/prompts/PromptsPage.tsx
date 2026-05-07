@@ -1,16 +1,21 @@
 import { useState, useEffect } from 'react'
+import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { useSettingsStore } from '@/stores/settings.store'
 import { DEFAULT_GENERATION_PROMPT, DEFAULT_REVISION_PROMPT } from '@/lib/default-prompts'
+import type { PromptSnapshot } from '@/types/models'
+
+const HISTORY_CAP = 20
 
 export default function PromptsPage() {
   const { settings, save } = useSettingsStore()
 
   const [generationDraft, setGenerationDraft] = useState(DEFAULT_GENERATION_PROMPT)
   const [revisionDraft, setRevisionDraft] = useState(DEFAULT_REVISION_PROMPT)
+  const [restoredId, setRestoredId] = useState<string | null>(null)
 
   useEffect(() => {
     if (settings) {
@@ -26,8 +31,33 @@ export default function PromptsPage() {
   const isDirty = generationDraft !== savedGeneration || revisionDraft !== savedRevision
 
   const handleSave = () => {
-    save({ customPrompts: { generation: generationDraft, revision: revisionDraft } })
+    const snapshot: PromptSnapshot = {
+      id: crypto.randomUUID(),
+      savedAt: new Date().toISOString(),
+      generation: savedGeneration,
+      revision: savedRevision,
+    }
+    const newHistory = [snapshot, ...(settings.promptHistory ?? [])].slice(0, HISTORY_CAP)
+    save({
+      customPrompts: { generation: generationDraft, revision: revisionDraft },
+      promptHistory: newHistory,
+    })
+    setRestoredId(null)
   }
+
+  const handleRestore = (snapshot: PromptSnapshot) => {
+    setGenerationDraft(snapshot.generation)
+    setRevisionDraft(snapshot.revision)
+    setRestoredId(snapshot.id)
+  }
+
+  const handleDeleteSnapshot = (id: string) => {
+    const filtered = (settings.promptHistory ?? []).filter((s) => s.id !== id)
+    save({ promptHistory: filtered })
+    if (restoredId === id) setRestoredId(null)
+  }
+
+  const history = settings.promptHistory ?? []
 
   return (
     <div className="p-8 max-w-2xl space-y-8">
@@ -93,6 +123,52 @@ export default function PromptsPage() {
           Save Prompts
         </Button>
       </div>
+
+      {/* History */}
+      {history.length > 0 && (
+        <>
+          <Separator />
+          <div className="space-y-3">
+            <h3 className="font-semibold text-sm">History</h3>
+            <div className="space-y-2">
+              {history.map((snapshot) => (
+                <div
+                  key={snapshot.id}
+                  className={`rounded-lg border p-3 space-y-1.5 transition-colors ${
+                    restoredId === snapshot.id ? 'border-primary/40 bg-primary/5' : 'border-border'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(snapshot.savedAt).toLocaleString()}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-xs px-2"
+                        onClick={() => handleRestore(snapshot)}
+                      >
+                        Restore
+                      </Button>
+                      <button
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                        onClick={() => handleDeleteSnapshot(snapshot.id)}
+                        aria-label="Delete snapshot"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground font-mono truncate">
+                    {snapshot.generation.slice(0, 100)}{snapshot.generation.length > 100 ? '…' : ''}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

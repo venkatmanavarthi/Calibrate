@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Loader2, Play, Square } from 'lucide-react'
+import { Loader2, Play, Square, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -8,22 +8,7 @@ import { useProfilesStore } from '@/stores/profiles.store'
 import { useTemplatesStore } from '@/stores/templates.store'
 import { useSettingsStore } from '@/stores/settings.store'
 import { useGeneratorStore } from '@/stores/generator.store'
-
-const PROVIDER_LABELS: Record<string, string> = {
-  anthropic: 'Anthropic (Claude)',
-  openai: 'OpenAI (GPT)',
-  gemini: 'Google (Gemini)',
-  groq: 'Groq',
-  lmstudio: 'LM Studio (local)'
-}
-
-const PROVIDER_MODELS: Record<string, string[]> = {
-  anthropic: ['claude-sonnet-4-5', 'claude-haiku-4-5-20251001', 'claude-opus-4-7'],
-  openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
-  gemini: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.0-flash'],
-  groq: ['llama3-70b-8192', 'llama3-8b-8192', 'mixtral-8x7b-32768'],
-  lmstudio: ['local-model']
-}
+import { PROVIDER_LABELS, PROVIDER_MODELS } from '@/lib/ai-providers'
 
 interface Props {
   onGenerate: () => void
@@ -41,7 +26,8 @@ export default function JobInputPane({ onGenerate, onCancel }: Props) {
     jobDescription, setJobDescription,
     activeProvider, setProvider,
     activeModel, setModel,
-    isGenerating
+    isGenerating,
+    setGeneratedMarkdown, clearWarnings
   } = useGeneratorStore()
 
   useEffect(() => {
@@ -64,6 +50,12 @@ export default function JobInputPane({ onGenerate, onCancel }: Props) {
   }, [settings, setProvider, setModel])
 
   const canGenerate = selectedProfileId && selectedTemplateId && jobDescription.trim().length > 20 && !isGenerating
+
+  const handleClear = () => {
+    setJobDescription('')
+    setGeneratedMarkdown('')
+    clearWarnings()
+  }
 
   return (
     <div className="flex flex-col h-full p-4 gap-4">
@@ -155,9 +147,19 @@ export default function JobInputPane({ onGenerate, onCancel }: Props) {
             </Button>
           </div>
         ) : (
-          <Button onClick={onGenerate} disabled={!canGenerate} className="w-full gap-1.5">
-            <Play size={14} /> Generate Resume
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={onGenerate} disabled={!canGenerate} className="flex-1 gap-1.5">
+              <Play size={14} /> Generate Resume
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleClear}
+              disabled={!jobDescription && !isGenerating}
+              title="Clear job description and output"
+            >
+              <Trash2 size={14} />
+            </Button>
+          </div>
         )}
         {!selectedProfileId && (
           <p className="text-xs text-muted-foreground mt-1.5">Create a profile first.</p>

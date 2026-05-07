@@ -16,6 +16,7 @@ export interface WindowAPI {
   profilesGet: (id: string) => Promise<ExperienceProfile | null>
   profilesSave: (profile: ExperienceProfile) => Promise<{ ok: true }>
   profilesDelete: (id: string) => Promise<{ ok: true }>
+  profilesImportFromPdf: () => Promise<{ imported: false } | { imported: true; profile: ExperienceProfile }>
 
   // Templates
   templatesList: () => Promise<ResumeTemplate[]>

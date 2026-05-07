@@ -7,6 +7,7 @@ const api: WindowAPI = {
   profilesGet: (id) => ipcRenderer.invoke('profiles:get', id),
   profilesSave: (p) => ipcRenderer.invoke('profiles:save', p),
   profilesDelete: (id) => ipcRenderer.invoke('profiles:delete', id),
+  profilesImportFromPdf: () => ipcRenderer.invoke('profiles:importFromPdf'),
 
   // Templates
   templatesList: () => ipcRenderer.invoke('templates:list'),

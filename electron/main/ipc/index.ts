@@ -4,6 +4,7 @@ import { registerTemplatesIpc } from './templates.ipc'
 import { registerSettingsIpc } from './settings.ipc'
 import { registerAiIpc } from './ai.ipc'
 import { registerPdfIpc } from './pdf.ipc'
+import { registerPdfImportIpc } from './pdf-import.ipc'
 
 export function registerAllIpc(win: BrowserWindow): void {
   registerProfilesIpc()
@@ -12,4 +13,5 @@ export function registerAllIpc(win: BrowserWindow): void {
   registerAiIpc(win)
   registerPdfIpc(win)
   registerDataIpc(win)
+  registerPdfImportIpc()
 }

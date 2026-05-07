@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Pencil, Trash2, Upload, Download } from 'lucide-react'
+import { Plus, Pencil, Trash2, Upload, Download, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useProfilesStore } from '@/stores/profiles.store'
 import { generateId, now } from '@/lib/utils'
@@ -8,6 +9,7 @@ import type { ExperienceProfile } from '@/types/models'
 export default function ProfileList() {
   const navigate = useNavigate()
   const { profiles, save, remove } = useProfilesStore()
+  const [importingPdf, setImportingPdf] = useState(false)
 
   const handleDuplicate = async (profile: ExperienceProfile) => {
     const copy: ExperienceProfile = {
@@ -32,6 +34,21 @@ export default function ProfileList() {
     }
   }
 
+  const handleImportFromPdf = async () => {
+    setImportingPdf(true)
+    try {
+      const result = await window.api.profilesImportFromPdf()
+      if (result.imported) {
+        await useProfilesStore.getState().load()
+        navigate(`/profiles/${result.profile.id}`)
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to import PDF.')
+    } finally {
+      setImportingPdf(false)
+    }
+  }
+
   return (
     <div className="p-8 max-w-4xl">
       <div className="flex items-center justify-between mb-6">
@@ -47,6 +64,16 @@ export default function ProfileList() {
           </Button>
           <Button variant="outline" size="sm" onClick={handleExport} className="gap-1.5">
             <Download size={14} /> Export
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleImportFromPdf}
+            disabled={importingPdf}
+            className="gap-1.5"
+          >
+            <FileText size={14} />
+            {importingPdf ? 'Parsing…' : 'Import from PDF'}
           </Button>
           <Button size="sm" onClick={() => navigate('/profiles/new')} className="gap-1.5">
             <Plus size={14} /> New Profile

@@ -1,12 +1,14 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'path'
 import { ensureDirectories } from './storage/index'
+import { seedExampleTemplates } from './storage/seed'
 import { registerAllIpc } from './ipc/index'
 
 let mainWindow: BrowserWindow | null = null
 
 async function createWindow(): Promise<void> {
   await ensureDirectories()
+  await seedExampleTemplates()
 
   mainWindow = new BrowserWindow({
     width: 1440,

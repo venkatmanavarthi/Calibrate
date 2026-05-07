@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { useSettingsStore } from '@/stores/settings.store'
+import { PROVIDER_LABELS, PROVIDER_MODELS, ALL_PROVIDERS } from '@/lib/ai-providers'
 import type { AIProvider } from '@/types/models'
 
 const PROVIDERS: { id: AIProvider; label: string; needsKey: boolean }[] = [
@@ -15,6 +16,10 @@ const PROVIDERS: { id: AIProvider; label: string; needsKey: boolean }[] = [
   { id: 'groq', label: 'Groq', needsKey: true },
   { id: 'lmstudio', label: 'LM Studio (local)', needsKey: false }
 ]
+
+const KEY_REQUIRED: Record<AIProvider, boolean> = {
+  anthropic: true, openai: true, gemini: true, groq: true, lmstudio: false
+}
 
 interface KeyFieldProps {
   provider: AIProvider
@@ -123,6 +128,65 @@ export default function SettingsPage() {
         {PROVIDERS.filter((p) => p.needsKey).map((p) => (
           <KeyField key={p.id} provider={p.id} label={p.label} />
         ))}
+      </div>
+
+      <Separator />
+
+      {/* Default AI Model */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="font-semibold">Default AI Model</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Used for resume generation and PDF profile import.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label>Provider</Label>
+            <Select
+              value={settings.preferredProvider}
+              onValueChange={(v) => {
+                const provider = v as AIProvider
+                save({ preferredProvider: provider })
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ALL_PROVIDERS.map((p) => (
+                  <SelectItem key={p} value={p}>{PROVIDER_LABELS[p]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Model</Label>
+            <Select
+              value={settings.preferredModels[settings.preferredProvider]}
+              onValueChange={(v) => {
+                save({
+                  preferredModels: {
+                    ...settings.preferredModels,
+                    [settings.preferredProvider]: v
+                  }
+                })
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(PROVIDER_MODELS[settings.preferredProvider] ?? [settings.preferredModels[settings.preferredProvider]]).map((m) => (
+                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {KEY_REQUIRED[settings.preferredProvider] && (
+          <p className="text-xs text-muted-foreground">
+            Make sure an API key for <strong>{PROVIDER_LABELS[settings.preferredProvider]}</strong> is configured above.
+          </p>
+        )}
       </div>
 
       <Separator />

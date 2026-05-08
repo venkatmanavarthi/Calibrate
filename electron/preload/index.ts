@@ -25,6 +25,7 @@ const api: WindowAPI = {
   // AI
   aiGenerate: (req) => ipcRenderer.invoke('ai:generate', req),
   aiRevise: (req) => ipcRenderer.invoke('ai:revise', req),
+  aiRateResume: (req) => ipcRenderer.invoke('ai:rateResume', req),
   aiCancel: (requestId) => ipcRenderer.invoke('ai:cancel', requestId),
   aiListModels: (provider) => ipcRenderer.invoke('ai:listModels', provider),
 

@@ -6,6 +6,8 @@ import type {
   HallucinationWarning,
   GenerateRequest,
   RevisionRequest,
+  RateResumeRequest,
+  ResumeRating,
   PdfExportRequest,
   ExportBundle
 } from './models'
@@ -50,6 +52,7 @@ export interface WindowAPI {
   // AI (streaming via events)
   aiGenerate: (req: GenerateRequest) => Promise<void>
   aiRevise: (req: RevisionRequest) => Promise<void>
+  aiRateResume: (req: RateResumeRequest) => Promise<ResumeRating>
   aiCancel: (requestId: string) => Promise<{ ok: true }>
   aiListModels: (provider: AIProvider) => Promise<string[]>
 
@@ -90,6 +93,8 @@ export type {
   HallucinationWarning,
   GenerateRequest,
   RevisionRequest,
+  RateResumeRequest,
+  ResumeRating,
   PdfExportRequest,
   ExportBundle
 }

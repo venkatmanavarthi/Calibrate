@@ -177,3 +177,22 @@ export interface ExportBundle {
   profiles: ExperienceProfile[]
   templates: ResumeTemplate[]
 }
+
+export interface ResumeRating {
+  overallScore: number
+  atsScore: number
+  keywordScore: number
+  impactScore: number
+  atsIssues: string[]
+  matchedKeywords: string[]
+  missingKeywords: string[]
+  impactDetails: string[]
+  summary: string
+}
+
+export interface RateResumeRequest {
+  resumeMarkdown: string
+  jobDescription: string
+  provider: AIProvider
+  model: string
+}

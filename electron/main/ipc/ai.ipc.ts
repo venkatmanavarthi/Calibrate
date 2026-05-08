@@ -2,11 +2,12 @@ import { ipcMain, BrowserWindow } from 'electron'
 import { buildProvider } from '../ai/index'
 import { buildGenerationMessages } from '../ai/prompts/generate'
 import { buildRevisionMessages } from '../ai/prompts/revise'
+import { buildRatingMessages } from '../ai/prompts/rate'
 import { validateOutput } from '../ai/validator'
 import { getProfile } from '../storage/profiles.store'
 import { getTemplate } from '../storage/templates.store'
 import { loadSettings } from '../storage/settings.store'
-import type { GenerateRequest, RevisionRequest, AIProvider } from '../../../src/types/models'
+import type { GenerateRequest, RevisionRequest, RateResumeRequest, ResumeRating, AIProvider } from '../../../src/types/models'
 
 // AIs frequently wrap their output in ```markdown ... ``` fences despite being told not to.
 // Strip them so the renderer always receives clean markdown.
@@ -79,6 +80,15 @@ export function registerAiIpc(win: BrowserWindow): void {
     } finally {
       activeControllers.delete(req.requestId)
     }
+  })
+
+  ipcMain.handle('ai:rateResume', async (_, req: RateResumeRequest): Promise<ResumeRating> => {
+    const settings = await loadSettings()
+    const provider = await buildProvider(req.provider, settings)
+    const messages = buildRatingMessages(req.resumeMarkdown, req.jobDescription)
+    const raw = await provider.generate(messages, { model: req.model, temperature: 0.1 }, () => {})
+    const cleaned = raw.replace(/^```(?:json)?\r?\n?/, '').replace(/\r?\n?```\s*$/, '').trim()
+    return JSON.parse(cleaned) as ResumeRating
   })
 
   ipcMain.handle('ai:cancel', (_, requestId: string) => {

@@ -10,12 +10,30 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const loadProfiles = useProfilesStore((s) => s.load)
   const loadTemplates = useTemplatesStore((s) => s.load)
   const loadSettings = useSettingsStore((s) => s.load)
+  const theme = useSettingsStore((s) => s.settings?.theme)
 
   useEffect(() => {
     loadProfiles()
     loadTemplates()
     loadSettings()
   }, [loadProfiles, loadTemplates, loadSettings])
+
+  useEffect(() => {
+    const root = document.documentElement
+    const applyDark = (dark: boolean) => root.classList.toggle('dark', dark)
+
+    if (theme === 'dark') {
+      applyDark(true)
+    } else if (theme === 'light') {
+      applyDark(false)
+    } else {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)')
+      applyDark(mq.matches)
+      const handler = (e: MediaQueryListEvent) => applyDark(e.matches)
+      mq.addEventListener('change', handler)
+      return () => mq.removeEventListener('change', handler)
+    }
+  }, [theme])
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

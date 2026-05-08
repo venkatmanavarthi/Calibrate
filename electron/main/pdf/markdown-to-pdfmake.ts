@@ -49,22 +49,41 @@ function inlineRuns(tokens: Token[]): InlineRun[] {
 }
 
 function detectFloatRight(tokens: Token[]): { left: Token[]; rightText: string } | null {
-  const idx = tokens.findIndex(t => t.type === 'html' && /float\s*:\s*right/i.test(t.raw))
-  if (idx === -1) return null
-  const match = tokens[idx].raw.match(/<span[^>]*>([\s\S]*?)<\/span>/i)
-  if (!match) return null
-  return { left: tokens.slice(0, idx), rightText: match[1].trim() }
+  const openIdx = tokens.findIndex(t => t.type === 'html' && /float\s*:\s*right/i.test(t.raw))
+  if (openIdx === -1) return null
+
+  // marked splits <span style="float:right">text</span> into three tokens:
+  // opening html tag, text content, closing html tag — collect until </span>
+  const parts: string[] = []
+  let closeIdx = -1
+  for (let i = openIdx + 1; i < tokens.length; i++) {
+    const t = tokens[i]
+    if (t.type === 'html' && /<\/span>/i.test(t.raw)) {
+      closeIdx = i
+      break
+    }
+    if (t.type === 'text') parts.push((t as Tokens.Text).text)
+  }
+
+  // Fallback: try single-token form <span ...>content</span>
+  if (closeIdx === -1) {
+    const m = tokens[openIdx].raw.match(/<span[^>]*>([\s\S]*?)<\/span>/i)
+    if (!m) return null
+    return { left: tokens.slice(0, openIdx), rightText: m[1].trim() }
+  }
+
+  return { left: tokens.slice(0, openIdx), rightText: parts.join('').trim() }
 }
 
-function makeBlock(tokens: Token[], style: string, usableWidth: number): PdfContent {
+function makeBlock(tokens: Token[], style: string): PdfContent {
   const split = detectFloatRight(tokens)
   if (split) {
-    // Tab stop keeps date in the same paragraph text — visually right-aligned,
-    // and both appear on the same visual line in layout-aware PDF extraction.
     return {
-      text: [...inlineRuns(split.left), '\t', split.rightText],
-      tabStops: [{ position: usableWidth, alignment: 'right' }],
-      style,
+      columns: [
+        { text: inlineRuns(split.left), width: '*', style },
+        { text: split.rightText, width: 'auto', alignment: 'right', style },
+      ],
+      margin: [0, 0, 0, 4],
     }
   }
   return { text: inlineRuns(tokens), style }
@@ -86,7 +105,7 @@ export function markdownToPdfmake(tokens: Token[], usableWidth: number): PdfCont
       case 'heading': {
         const tok = token as Tokens.Heading
         const style = tok.depth === 1 ? 'h1' : tok.depth === 2 ? 'h2' : 'h3'
-        content.push(makeBlock(tok.tokens ?? [], style, usableWidth))
+        content.push(makeBlock(tok.tokens ?? [], style))
         if (tok.depth === 2) {
           content.push({
             canvas: [{ type: 'line', x1: 0, y1: 0, x2: usableWidth, y2: 0, lineWidth: 0.5, lineColor: '#aaaaaa' }],
@@ -98,7 +117,7 @@ export function markdownToPdfmake(tokens: Token[], usableWidth: number): PdfCont
 
       case 'paragraph': {
         const tok = token as Tokens.Paragraph
-        content.push(makeBlock(tok.tokens ?? [], 'paragraph', usableWidth))
+        content.push(makeBlock(tok.tokens ?? [], 'paragraph'))
         break
       }
 

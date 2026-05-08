@@ -9,7 +9,8 @@ import type {
   RateResumeRequest,
   ResumeRating,
   PdfExportRequest,
-  ExportBundle
+  ExportBundle,
+  CalibrateFile
 } from './models'
 
 export type UpdateState =
@@ -41,6 +42,10 @@ export interface WindowAPI {
   templatesGet: (id: string) => Promise<ResumeTemplate | null>
   templatesSave: (template: ResumeTemplate) => Promise<{ ok: true }>
   templatesDelete: (id: string) => Promise<{ ok: true }>
+  templatesExportCalibrate: (id: string) => Promise<{ filePath: string | null }>
+
+  // Prompts
+  promptsExportCalibrate: () => Promise<{ filePath: string | null }>
 
   // Settings
   settingsGet: () => Promise<AppSettings>
@@ -69,6 +74,10 @@ export interface WindowAPI {
   exportData: () => Promise<{ filePath: string | null }>
   importData: () => Promise<{ imported: boolean; profileCount: number; templateCount: number }>
 
+  // .calibrate file open
+  onTemplateOpenCalibrate: (cb: (template: ResumeTemplate) => void) => () => void
+  onPromptsOpenCalibrate: (cb: (prompts: { generation: string; revision: string }) => void) => () => void
+
   // Updates
   updatesCheck: () => Promise<void>
   updatesDownload: () => Promise<void>
@@ -96,5 +105,6 @@ export type {
   RateResumeRequest,
   ResumeRating,
   PdfExportRequest,
-  ExportBundle
+  ExportBundle,
+  CalibrateFile
 }

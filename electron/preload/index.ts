@@ -14,6 +14,10 @@ const api: WindowAPI = {
   templatesGet: (id) => ipcRenderer.invoke('templates:get', id),
   templatesSave: (t) => ipcRenderer.invoke('templates:save', t),
   templatesDelete: (id) => ipcRenderer.invoke('templates:delete', id),
+  templatesExportCalibrate: (id) => ipcRenderer.invoke('templates:exportCalibrate', id),
+
+  // Prompts
+  promptsExportCalibrate: () => ipcRenderer.invoke('prompts:exportCalibrate'),
 
   // Settings
   settingsGet: () => ipcRenderer.invoke('settings:get'),
@@ -49,6 +53,18 @@ const api: WindowAPI = {
   // PDF
   pdfExport: (req) => ipcRenderer.invoke('pdf:export', req),
   pdfChooseDestination: () => ipcRenderer.invoke('pdf:chooseDestination'),
+
+  // .calibrate file open
+  onTemplateOpenCalibrate: (cb) => {
+    const handler = (_: Electron.IpcRendererEvent, template: Parameters<typeof cb>[0]) => cb(template)
+    ipcRenderer.on('template:openCalibrate', handler)
+    return () => ipcRenderer.removeListener('template:openCalibrate', handler)
+  },
+  onPromptsOpenCalibrate: (cb) => {
+    const handler = (_: Electron.IpcRendererEvent, prompts: Parameters<typeof cb>[0]) => cb(prompts)
+    ipcRenderer.on('prompts:openCalibrate', handler)
+    return () => ipcRenderer.removeListener('prompts:openCalibrate', handler)
+  },
 
   // Import / Export
   exportData: () => ipcRenderer.invoke('export:data'),

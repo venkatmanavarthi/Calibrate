@@ -17,6 +17,13 @@ files:
 
 asar: true
 
+fileAssociations:
+  - ext: calibrate
+    name: Calibrate Template
+    description: Calibrate resume template
+    role: Editor
+    mimeType: application/x-calibrate-template
+
 mac:
   category: public.app-category.productivity
   icon: assets/icons/mac/icon.icns

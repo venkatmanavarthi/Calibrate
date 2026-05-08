@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Plus, Pencil, Trash2, Copy, FileText } from 'lucide-react'
+import { Plus, Pencil, Trash2, Copy, FileText, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTemplatesStore } from '@/stores/templates.store'
 import { generateId, now } from '@/lib/utils'
@@ -111,6 +111,9 @@ export default function TemplateList() {
                 </p>
               </div>
               <div className="flex gap-1.5 ml-4 flex-shrink-0">
+                <Button variant="ghost" size="icon" title="Share as .calibrate" onClick={() => window.api.templatesExportCalibrate(template.id)}>
+                  <Share2 size={15} />
+                </Button>
                 <Button variant="ghost" size="icon" onClick={() => handleDuplicate(template)}>
                   <Copy size={15} />
                 </Button>

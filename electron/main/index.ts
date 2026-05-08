@@ -4,8 +4,56 @@ import { ensureDirectories } from './storage/index'
 import { seedExampleTemplates } from './storage/seed'
 import { loadSettings } from './storage/settings.store'
 import { registerAllIpc } from './ipc/index'
+import { readCalibrateFile } from './ipc/templates.ipc'
 
 let mainWindow: BrowserWindow | null = null
+let pendingCalibrateFile: string | null = null
+
+function getCalibrateArgv(argv: string[]): string | null {
+  return argv.find((a) => a.endsWith('.calibrate')) ?? null
+}
+
+async function sendCalibrateFile(filePath: string): Promise<void> {
+  if (!mainWindow) return
+  const file = await readCalibrateFile(filePath)
+  if (!file) return
+  if (file.type === 'template') {
+    mainWindow.webContents.send('template:openCalibrate', file.template)
+  } else if (file.type === 'prompts') {
+    mainWindow.webContents.send('prompts:openCalibrate', { generation: file.generation, revision: file.revision })
+  }
+}
+
+// Must register before app is ready to catch macOS cold-start open-file events
+app.on('will-finish-launching', () => {
+  app.on('open-file', (event, filePath) => {
+    event.preventDefault()
+    if (!filePath.endsWith('.calibrate')) return
+    if (mainWindow) {
+      sendCalibrateFile(filePath)
+    } else {
+      pendingCalibrateFile = filePath
+    }
+  })
+})
+
+// Single-instance lock so Win/Linux warm-start routes to the existing window
+const gotLock = app.requestSingleInstanceLock()
+if (!gotLock) {
+  app.quit()
+} else {
+  app.on('second-instance', (_, argv) => {
+    const filePath = getCalibrateArgv(argv)
+    if (filePath && mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+      sendCalibrateFile(filePath)
+    } else if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+    }
+  })
+}
 
 async function createWindow(): Promise<void> {
   await ensureDirectories()
@@ -33,7 +81,15 @@ async function createWindow(): Promise<void> {
     }
   })
 
-  mainWindow.once('ready-to-show', () => mainWindow?.show())
+  mainWindow.once('ready-to-show', async () => {
+    mainWindow?.show()
+    // Handle file opened before window was ready (macOS cold start or Win/Linux argv)
+    const filePath = pendingCalibrateFile ?? getCalibrateArgv(process.argv)
+    if (filePath) {
+      pendingCalibrateFile = null
+      await sendCalibrateFile(filePath)
+    }
+  })
 
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   mainWindow.webContents.on('will-navigate', (e, url) => {

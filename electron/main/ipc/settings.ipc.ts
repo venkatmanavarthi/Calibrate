@@ -1,7 +1,8 @@
-import { ipcMain } from 'electron'
+import { ipcMain, dialog } from 'electron'
+import fs from 'fs/promises'
 import { loadSettings, saveSettings } from '../storage/settings.store'
 import { setKey, deleteKey, hasKey } from '../security/keystore'
-import type { AIProvider, AppSettings } from '../../../src/types/models'
+import type { AIProvider, AppSettings, CalibrateFile } from '../../../src/types/models'
 
 export function registerSettingsIpc(): void {
   ipcMain.handle('settings:get', () => loadSettings())
@@ -31,5 +32,20 @@ export function registerSettingsIpc(): void {
   ipcMain.handle('settings:hasKey', async (_, provider: AIProvider) => {
     const result = await hasKey(provider)
     return { hasKey: result }
+  })
+
+  ipcMain.handle('prompts:exportCalibrate', async () => {
+    const settings = await loadSettings()
+    const generation = settings.customPrompts?.generation ?? ''
+    const revision = settings.customPrompts?.revision ?? ''
+    const result = await dialog.showSaveDialog({
+      defaultPath: 'my-prompts.calibrate',
+      filters: [{ name: 'Calibrate Prompts', extensions: ['calibrate'] }]
+    })
+    if (result.canceled || !result.filePath) return { filePath: null }
+
+    const file: CalibrateFile = { version: 1, type: 'prompts', generation, revision }
+    await fs.writeFile(result.filePath, JSON.stringify(file, null, 2), 'utf-8')
+    return { filePath: result.filePath }
   })
 }

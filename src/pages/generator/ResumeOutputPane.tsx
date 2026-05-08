@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { FileDown, Eye, Code2, FileText, SlidersHorizontal, AlignLeft, AlignCenter, AlignRight, AlignJustify, X, Type, BarChart2 } from 'lucide-react'
+import { FileDown, Eye, Code2, FileText, SlidersHorizontal, AlignLeft, AlignCenter, AlignRight, AlignJustify, X, Type, BarChart2, ZoomIn, ZoomOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import MarkdownEditor, { type MarkdownEditorHandle } from '@/components/editor/MarkdownEditor'
@@ -44,6 +44,7 @@ export default function ResumeOutputPane({ onRevise }: Props) {
   const [padRight, setPadRight] = useState(15)
   const [padBottom, setPadBottom] = useState(15)
   const [padLeft, setPadLeft] = useState(15)
+  const [pdfZoom, setPdfZoom] = useState(1.0)
   const [rightPanelWidth, setRightPanelWidth] = useState(220)
   const rightPanelRef = useRef<HTMLDivElement>(null)
 
@@ -129,6 +130,28 @@ export default function ResumeOutputPane({ onRevise }: Props) {
             <FileText size={12} /> PDF
           </Button>
         </div>
+
+        {viewMode === 'pdf' && (
+          <div className="flex items-center gap-1 border rounded-md px-1 py-0.5 bg-background">
+            <Button
+              size="sm" variant="ghost" className="h-6 w-6 p-0"
+              onClick={() => setPdfZoom(z => Math.max(0.5, parseFloat((z - 0.25).toFixed(2))))}
+              disabled={pdfZoom <= 0.5}
+            >
+              <ZoomOut size={12} />
+            </Button>
+            <span className="text-xs tabular-nums w-9 text-center select-none">
+              {Math.round(pdfZoom * 100)}%
+            </span>
+            <Button
+              size="sm" variant="ghost" className="h-6 w-6 p-0"
+              onClick={() => setPdfZoom(z => Math.min(2.0, parseFloat((z + 0.25).toFixed(2))))}
+              disabled={pdfZoom >= 2.0}
+            >
+              <ZoomIn size={12} />
+            </Button>
+          </div>
+        )}
 
         {settings && (
           <div className="ml-auto flex items-center gap-2">
@@ -237,6 +260,7 @@ export default function ResumeOutputPane({ onRevise }: Props) {
               paddingRightMm={padRight}
               paddingBottomMm={padBottom}
               paddingLeftMm={padLeft}
+              zoom={pdfZoom}
             />
           )}
         </div>

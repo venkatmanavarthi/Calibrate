@@ -13,6 +13,7 @@ interface PdfPreviewProps {
   paddingRightMm?: number
   paddingBottomMm?: number
   paddingLeftMm?: number
+  zoom?: number
 }
 
 // Page dimensions in px at 96dpi
@@ -71,6 +72,7 @@ export default function PdfPreview({
   markdown, font, pageSize, marginMm,
   fontSize = 11, textAlign = 'left', lineHeight = 1.5,
   paddingTopMm, paddingRightMm, paddingBottomMm, paddingLeftMm,
+  zoom = 1,
 }: PdfPreviewProps) {
   const [srcDoc, setSrcDoc] = useState('')
   const { w, h } = PAGE_PX[pageSize]
@@ -82,16 +84,18 @@ export default function PdfPreview({
 
   return (
     <div className="h-full overflow-auto bg-muted/40 flex justify-center py-6">
-      <div
-        className="shadow-lg bg-white"
-        style={{ width: w, minHeight: h, flexShrink: 0 }}
-      >
-        <iframe
-          srcDoc={srcDoc}
-          style={{ width: w, height: h, border: 'none', display: 'block' }}
-          sandbox="allow-same-origin"
-          title="PDF Preview"
-        />
+      <div style={{ width: w * zoom, height: h * zoom, flexShrink: 0 }}>
+        <div
+          className="shadow-lg bg-white"
+          style={{ width: w, height: h, transform: `scale(${zoom})`, transformOrigin: 'top left' }}
+        >
+          <iframe
+            srcDoc={srcDoc}
+            style={{ width: w, height: h, border: 'none', display: 'block' }}
+            sandbox="allow-same-origin"
+            title="PDF Preview"
+          />
+        </div>
       </div>
     </div>
   )

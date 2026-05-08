@@ -16,56 +16,25 @@ const EXAMPLE_TEMPLATE: ResumeTemplate = {
 
 ## TECHNICAL SKILLS
 
-- **Languages:** {{SKILL_LANGUAGES}}
-- **Big Data:** {{SKILL_BIG_DATA}}
-- **Cloud:** {{SKILL_CLOUD}}
-- **Data Engineering:** {{SKILL_DATA_ENGINEERING}}
-- **APIs & Frameworks:** {{SKILL_APIS_FRAMEWORKS}}
-- **Databases:** {{SKILL_DATABASES}}
-- **DevOps:** {{SKILL_DEVOPS}}
+<!-- Group skills by category relevant to the candidate, e.g.:
+- **Category:** skill1, skill2, skill3
+-->
+{{SKILLS}}
 
 ## PROFESSIONAL EXPERIENCE
 
-**{{COMPANY_1}}**, {{LOCATION_1}} &nbsp;&nbsp;&nbsp; {{START_DATE_1}} – {{END_DATE_1}}
-*{{TITLE_1}}*
-
-- {{BULLET_1_1}}
-- {{BULLET_1_2}}
-- {{BULLET_1_3}}
-- {{BULLET_1_4}}
-- {{BULLET_1_5}}
-- {{BULLET_1_6}}
-
-**{{COMPANY_2}}**, {{LOCATION_2}} &nbsp;&nbsp;&nbsp; {{START_DATE_2}} – {{END_DATE_2}}
-*{{TITLE_2}}*
-
-- {{BULLET_2_1}}
-- {{BULLET_2_2}}
-- {{BULLET_2_3}}
-- {{BULLET_2_4}}
-- {{BULLET_2_5}}
-- {{BULLET_2_6}}
-
-**{{COMPANY_3}}**, {{LOCATION_3}} &nbsp;&nbsp;&nbsp; {{START_DATE_3}} – {{END_DATE_3}}
-*{{TITLE_3}}*
-
-- {{BULLET_3_1}}
-- {{BULLET_3_2}}
-- {{BULLET_3_3}}
-- {{BULLET_3_4}}
-- {{BULLET_3_5}}
-
-**{{COMPANY_4}}**, {{LOCATION_4}} &nbsp;&nbsp;&nbsp; {{START_DATE_4}} – {{END_DATE_4}}
-*{{TITLE_4}}*
-
-- {{BULLET_4_1}}
-- {{BULLET_4_2}}
+<!-- For each position, use this format (as many bullet points as relevant):
+**Job Title**, Company Location <span style="float:right">Start – End</span>
+- achievement or responsibility
+-->
+{{WORK_HISTORY}}
 
 ## EDUCATION
 
-**{{INSTITUTION_1}}**, {{DEGREE_1}} in {{FIELD_1}} &nbsp;&nbsp;&nbsp; {{GRAD_DATE_1}}
-
-**{{INSTITUTION_2}}**, {{DEGREE_2}} in {{FIELD_2}} &nbsp;&nbsp;&nbsp; {{GRAD_DATE_2}}
+<!-- For each entry, use this format:
+**Degree in Field**, Institution <span style="float:right">Graduation Date</span>
+-->
+{{EDUCATION}}
 `,
   defaultStyleHints: 'Clean single-column layout. Section headers ALL CAPS. Company name bold, role italic. Skills grouped by labeled category.',
   createdAt: '2026-05-07T00:00:00.000Z',

@@ -15,7 +15,13 @@ const DEFAULT_TEMPLATE = `# {{FULL_NAME}}
 
 ## Experience
 
-{{WORK_HISTORY}}
+<!-- Format each entry exactly as shown below (role first, date right-aligned): -->
+**{{JOB_TITLE}}**, {{COMPANY}} — {{LOCATION}} <span style="float:right">{{START_DATE}} – {{END_DATE}}</span>
+
+- {{ACHIEVEMENT_1}}
+- {{ACHIEVEMENT_2}}
+
+(repeat for each position from WORK_HISTORY)
 
 ## Projects
 
@@ -23,7 +29,10 @@ const DEFAULT_TEMPLATE = `# {{FULL_NAME}}
 
 ## Education
 
-{{EDUCATION}}
+<!-- Format each entry exactly as shown below (degree and institution first, date right-aligned): -->
+**{{DEGREE}} in {{FIELD}}**, {{INSTITUTION}} <span style="float:right">{{GRADUATION_DATE}}</span>
+
+(repeat for each entry from EDUCATION)
 
 ## Skills
 

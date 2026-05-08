@@ -57,7 +57,8 @@ function buildPrintableHtml(body: string, marginMm: number, font: string): strin
   h1 { font-size: 18pt; margin: 0 0 4pt; }
   h2 { font-size: 13pt; border-bottom: 1px solid #aaa; margin: 12pt 0 4pt; padding-bottom: 2pt; }
   h3 { font-size: 11pt; margin: 8pt 0 2pt; }
-  p { margin: 0 0 6pt; overflow-wrap: break-word; word-break: break-word; }
+  p { margin: 0 0 6pt; overflow-wrap: break-word; word-break: break-word; overflow: hidden; }
+  p::after { content: ''; display: block; clear: both; }
   ul { margin: 2pt 0 6pt; padding-left: 18pt; }
   li { margin-bottom: 2pt; overflow-wrap: break-word; word-break: break-word; }
   a { color: #111; text-decoration: none; }

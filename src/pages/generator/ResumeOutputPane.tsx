@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { FileDown, Eye, Code2, FileText, SlidersHorizontal, AlignLeft, AlignCenter, AlignRight, AlignJustify, X, Type, BarChart2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -30,6 +30,10 @@ export default function ResumeOutputPane({ onRevise }: Props) {
   const [exporting, setExporting] = useState(false)
   const [showStylePanel, setShowStylePanel] = useState(false)
   const [showRatingPanel, setShowRatingPanel] = useState(false)
+
+  useEffect(() => {
+    if (!generatedMarkdown) setShowRatingPanel(false)
+  }, [generatedMarkdown])
   const [fontSize, setFontSize] = useState(14)
   const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right' | 'justify'>('left')
   const [lineHeight, setLineHeight] = useState(1.6)

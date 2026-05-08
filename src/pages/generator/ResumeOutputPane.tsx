@@ -32,8 +32,11 @@ export default function ResumeOutputPane({ onRevise }: Props) {
   const [showRatingPanel, setShowRatingPanel] = useState(false)
 
   useEffect(() => {
-    if (!generatedMarkdown) setShowRatingPanel(false)
-  }, [generatedMarkdown])
+    if (!generatedMarkdown) {
+      setShowRatingPanel(false)
+      if (viewMode === 'pdf') setViewMode('preview')
+    }
+  }, [generatedMarkdown]) // eslint-disable-line react-hooks/exhaustive-deps
   const [fontSize, setFontSize] = useState(14)
   const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right' | 'justify'>('left')
   const [lineHeight, setLineHeight] = useState(1.6)

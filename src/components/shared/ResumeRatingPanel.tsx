@@ -102,7 +102,7 @@ export default function ResumeRatingPanel({ resumeMarkdown, jobDescription, prov
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="w-[220px] flex-shrink-0 border-l flex flex-col bg-background">
+    <div className="w-full h-full flex flex-col bg-background">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30">
         <div className="flex items-center gap-1.5">

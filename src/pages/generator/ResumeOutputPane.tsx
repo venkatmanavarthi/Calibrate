@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { FileDown, Eye, Code2, FileText, SlidersHorizontal, AlignLeft, AlignCenter, AlignRight, AlignJustify, X, Type, BarChart2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -37,6 +37,31 @@ export default function ResumeOutputPane({ onRevise }: Props) {
   const [padRight, setPadRight] = useState(15)
   const [padBottom, setPadBottom] = useState(15)
   const [padLeft, setPadLeft] = useState(15)
+  const [rightPanelWidth, setRightPanelWidth] = useState(220)
+  const rightPanelRef = useRef<HTMLDivElement>(null)
+
+  const handleRightPanelDividerMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!rightPanelRef.current) return
+      const rect = rightPanelRef.current.parentElement!.getBoundingClientRect()
+      const newWidth = Math.min(Math.max(rect.right - ev.clientX, 160), 480)
+      setRightPanelWidth(newWidth)
+    }
+
+    const onMouseUp = () => {
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+  }, [])
 
   const handleExportPdf = async () => {
     if (!settings) return
@@ -211,18 +236,35 @@ export default function ResumeOutputPane({ onRevise }: Props) {
 
         {/* Right rating sidebar */}
         {showRatingPanel && (
-          <ResumeRatingPanel
-            resumeMarkdown={generatedMarkdown}
-            jobDescription={jobDescription}
-            provider={activeProvider}
-            model={activeModel}
-            onClose={() => setShowRatingPanel(false)}
-          />
+          <div ref={rightPanelRef} style={{ width: rightPanelWidth }} className="flex-shrink-0 flex">
+            <div
+              className="w-1 flex-shrink-0 cursor-col-resize bg-border hover:bg-primary/40 active:bg-primary/60 transition-colors relative"
+              onMouseDown={handleRightPanelDividerMouseDown}
+            >
+              <div className="absolute inset-y-0 -left-1 -right-1" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <ResumeRatingPanel
+                resumeMarkdown={generatedMarkdown}
+                jobDescription={jobDescription}
+                provider={activeProvider}
+                model={activeModel}
+                onClose={() => setShowRatingPanel(false)}
+              />
+            </div>
+          </div>
         )}
 
         {/* Right style sidebar */}
         {showStylePanel && (
-          <div className="w-[200px] flex-shrink-0 border-l flex flex-col bg-background">
+          <div ref={rightPanelRef} style={{ width: rightPanelWidth }} className="flex-shrink-0 flex">
+            <div
+              className="w-1 flex-shrink-0 cursor-col-resize bg-border hover:bg-primary/40 active:bg-primary/60 transition-colors relative"
+              onMouseDown={handleRightPanelDividerMouseDown}
+            >
+              <div className="absolute inset-y-0 -left-1 -right-1" />
+            </div>
+          <div className="flex-1 min-w-0 flex flex-col bg-background">
             {/* Header */}
             <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30">
               <div className="flex items-center gap-1.5">
@@ -343,6 +385,7 @@ export default function ResumeOutputPane({ onRevise }: Props) {
                 Reset to defaults
               </Button>
             </div>
+          </div>
           </div>
         )}
       </div>

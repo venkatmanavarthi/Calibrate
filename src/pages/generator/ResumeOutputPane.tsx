@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { FileDown, Eye, Code2, FileText } from 'lucide-react'
+import { FileDown, Eye, Code2, FileText, SlidersHorizontal, AlignLeft, AlignCenter, AlignRight, AlignJustify, X, Type } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import MarkdownEditor, { type MarkdownEditorHandle } from '@/components/editor/MarkdownEditor'
@@ -25,6 +25,14 @@ export default function ResumeOutputPane({ onRevise }: Props) {
   } = useGeneratorStore()
   const { settings, save } = useSettingsStore()
   const [exporting, setExporting] = useState(false)
+  const [showStylePanel, setShowStylePanel] = useState(false)
+  const [fontSize, setFontSize] = useState(14)
+  const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right' | 'justify'>('left')
+  const [lineHeight, setLineHeight] = useState(1.6)
+  const [padTop, setPadTop] = useState(15)
+  const [padRight, setPadRight] = useState(15)
+  const [padBottom, setPadBottom] = useState(15)
+  const [padLeft, setPadLeft] = useState(15)
 
   const handleExportPdf = async () => {
     if (!settings) return
@@ -37,7 +45,14 @@ export default function ResumeOutputPane({ onRevise }: Props) {
         destFilePath: dest.filePath,
         pageSize: settings.pdfPageSize,
         marginMm: settings.pdfMarginMm,
-        font: settings.pdfFont
+        font: settings.pdfFont,
+        fontSize: Math.round(fontSize / 1.333),
+        textAlign,
+        lineHeight,
+        paddingTopMm: padTop,
+        paddingRightMm: padRight,
+        paddingBottomMm: padBottom,
+        paddingLeftMm: padLeft,
       })
     } finally {
       setExporting(false)
@@ -122,6 +137,16 @@ export default function ResumeOutputPane({ onRevise }: Props) {
             >
               <FileDown size={13} /> {exporting ? 'Exporting…' : 'Export PDF'}
             </Button>
+
+            <Button
+              size="sm"
+              variant={showStylePanel ? 'secondary' : 'ghost'}
+              className="h-7 w-7 p-0"
+              onClick={() => setShowStylePanel((v) => !v)}
+              title="Typography"
+            >
+              <SlidersHorizontal size={13} />
+            </Button>
           </div>
         )}
       </div>
@@ -129,25 +154,170 @@ export default function ResumeOutputPane({ onRevise }: Props) {
       {/* Hallucination warnings */}
       <HallucinationWarningBanner warnings={warnings} onDismiss={clearWarnings} />
 
-      {/* Editor / Preview / PDF Preview */}
-      <div className="flex-1 overflow-hidden">
-        {viewMode === 'edit' ? (
-          <MarkdownEditor
-            ref={editorRef}
-            value={generatedMarkdown}
-            onChange={setGeneratedMarkdown}
-            onSelectionChange={setSelection}
-            className="h-full"
-          />
-        ) : viewMode === 'preview' ? (
-          <ResumePreview markdown={generatedMarkdown} className="h-full" />
-        ) : (
-          <PdfPreview
-            markdown={generatedMarkdown}
-            font={settings?.pdfFont ?? 'Georgia'}
-            pageSize={settings?.pdfPageSize ?? 'Letter'}
-            marginMm={settings?.pdfMarginMm ?? 15}
-          />
+      {/* Editor / Preview / PDF Preview + Style Sidebar */}
+      <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 overflow-hidden">
+          {viewMode === 'edit' ? (
+            <MarkdownEditor
+              ref={editorRef}
+              value={generatedMarkdown}
+              onChange={setGeneratedMarkdown}
+              onSelectionChange={setSelection}
+              className="h-full"
+            />
+          ) : viewMode === 'preview' ? (
+            <ResumePreview
+              markdown={generatedMarkdown}
+              className="h-full"
+              fontSize={fontSize}
+              textAlign={textAlign}
+              lineHeight={lineHeight}
+              paddingTopMm={padTop}
+              paddingRightMm={padRight}
+              paddingBottomMm={padBottom}
+              paddingLeftMm={padLeft}
+            />
+          ) : (
+            <PdfPreview
+              markdown={generatedMarkdown}
+              font={settings?.pdfFont ?? 'Georgia'}
+              pageSize={settings?.pdfPageSize ?? 'Letter'}
+              marginMm={settings?.pdfMarginMm ?? 15}
+              fontSize={Math.round(fontSize / 1.333)}
+              textAlign={textAlign}
+              lineHeight={lineHeight}
+              paddingTopMm={padTop}
+              paddingRightMm={padRight}
+              paddingBottomMm={padBottom}
+              paddingLeftMm={padLeft}
+            />
+          )}
+        </div>
+
+        {/* Right style sidebar */}
+        {showStylePanel && (
+          <div className="w-[200px] flex-shrink-0 border-l flex flex-col bg-background">
+            {/* Header */}
+            <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30">
+              <div className="flex items-center gap-1.5">
+                <Type size={12} className="text-muted-foreground" />
+                <span className="text-xs font-medium">Typography</span>
+              </div>
+              <button
+                onClick={() => setShowStylePanel(false)}
+                className="text-muted-foreground hover:text-foreground rounded p-0.5 transition-colors"
+              >
+                <X size={12} />
+              </button>
+            </div>
+
+            {/* Controls */}
+            <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-5">
+              {/* Font Size */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Font Size</span>
+                  <span className="text-xs tabular-nums bg-muted rounded px-1.5 py-0.5 font-medium">{fontSize}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={10}
+                  max={22}
+                  step={1}
+                  value={fontSize}
+                  onChange={(e) => setFontSize(Number(e.target.value))}
+                  className="w-full accent-primary cursor-pointer"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span>10px</span><span>22px</span>
+                </div>
+              </div>
+
+              {/* Alignment */}
+              <div className="flex flex-col gap-2">
+                <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Alignment</span>
+                <div className="grid grid-cols-4 gap-1">
+                  {([
+                    { value: 'left', Icon: AlignLeft, label: 'Left' },
+                    { value: 'center', Icon: AlignCenter, label: 'Center' },
+                    { value: 'right', Icon: AlignRight, label: 'Right' },
+                    { value: 'justify', Icon: AlignJustify, label: 'Justify' },
+                  ] as const).map(({ value, Icon, label }) => (
+                    <Button
+                      key={value}
+                      variant={textAlign === value ? 'secondary' : 'ghost'}
+                      size="sm"
+                      className="h-8 p-0"
+                      onClick={() => setTextAlign(value)}
+                      title={label}
+                    >
+                      <Icon size={13} />
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Line Height */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Line Height</span>
+                  <span className="text-xs tabular-nums bg-muted rounded px-1.5 py-0.5 font-medium">{lineHeight.toFixed(1)}</span>
+                </div>
+                <input
+                  type="range"
+                  min={1.2}
+                  max={2.4}
+                  step={0.1}
+                  value={lineHeight}
+                  onChange={(e) => setLineHeight(Number(e.target.value))}
+                  className="w-full accent-primary cursor-pointer"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span>1.2</span><span>2.4</span>
+                </div>
+              </div>
+
+              {/* Padding */}
+              <div className="flex flex-col gap-2">
+                <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Padding (mm)</span>
+                <div className="flex flex-col gap-1.5">
+                  {([
+                    { label: 'Top', value: padTop, set: setPadTop },
+                    { label: 'Right', value: padRight, set: setPadRight },
+                    { label: 'Bottom', value: padBottom, set: setPadBottom },
+                    { label: 'Left', value: padLeft, set: setPadLeft },
+                  ] as const).map(({ label, value, set }) => (
+                    <div key={label} className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground w-12">{label}</span>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min={0}
+                          max={50}
+                          value={value}
+                          onChange={(e) => set(Math.max(0, Math.min(50, Number(e.target.value))))}
+                          className="w-14 text-center text-xs h-7 rounded border border-border bg-background tabular-nums focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                        <span className="text-[10px] text-muted-foreground">mm</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t p-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full h-7 text-xs text-muted-foreground"
+                onClick={() => { setFontSize(14); setTextAlign('left'); setLineHeight(1.6); setPadTop(15); setPadRight(15); setPadBottom(15); setPadLeft(15) }}
+              >
+                Reset to defaults
+              </Button>
+            </div>
+          </div>
         )}
       </div>
 

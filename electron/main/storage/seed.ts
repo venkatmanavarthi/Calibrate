@@ -24,7 +24,7 @@ const EXAMPLE_TEMPLATE: ResumeTemplate = {
 ## PROFESSIONAL EXPERIENCE
 
 <!-- For each position, use this format (as many bullet points as relevant):
-**Job Title**, Company Location <span style="float:right">Start – End</span>
+**Job Title**, Company, Location <span style="float:right">Start – End</span>
 - achievement or responsibility
 -->
 {{WORK_HISTORY}}

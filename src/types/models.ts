@@ -162,6 +162,13 @@ export interface PdfExportRequest {
   pageSize: 'Letter' | 'A4'
   marginMm: number
   font: string
+  fontSize?: number
+  textAlign?: string
+  lineHeight?: number
+  paddingTopMm?: number
+  paddingRightMm?: number
+  paddingBottomMm?: number
+  paddingLeftMm?: number
 }
 
 export interface ExportBundle {

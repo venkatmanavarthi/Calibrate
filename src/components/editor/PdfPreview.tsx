@@ -6,35 +6,58 @@ interface PdfPreviewProps {
   font: string
   pageSize: 'Letter' | 'A4'
   marginMm: number
+  fontSize?: number
+  textAlign?: string
+  lineHeight?: number
+  paddingTopMm?: number
+  paddingRightMm?: number
+  paddingBottomMm?: number
+  paddingLeftMm?: number
 }
 
 // Page dimensions in px at 96dpi
 const PAGE_PX = { Letter: { w: 816, h: 1056 }, A4: { w: 794, h: 1123 } }
 
-function buildHtml(body: string, font: string, marginMm: number): string {
+function buildHtml(
+  body: string,
+  font: string,
+  marginMm: number,
+  fontSize = 11,
+  textAlign = 'left',
+  lineHeight = 1.5,
+  paddingTopMm?: number,
+  paddingRightMm?: number,
+  paddingBottomMm?: number,
+  paddingLeftMm?: number,
+): string {
   const fontStack = `'${font}', Georgia, 'Times New Roman', serif`
+  const top = paddingTopMm ?? marginMm
+  const right = paddingRightMm ?? marginMm
+  const bottom = paddingBottomMm ?? marginMm
+  const left = paddingLeftMm ?? marginMm
   return `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8" />
+<title>Resume</title>
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: white; }
   body {
     font-family: ${fontStack};
-    font-size: 11pt;
-    line-height: 1.5;
+    font-size: ${fontSize}pt;
+    line-height: ${lineHeight};
+    text-align: ${textAlign};
     color: #111;
-    padding: ${marginMm}mm;
+    padding: ${top}mm ${right}mm ${bottom}mm ${left}mm;
     overflow-wrap: break-word;
-    word-break: break-word;
   }
-  h1 { font-size: 18pt; margin: 0 0 4pt; }
-  h2 { font-size: 13pt; border-bottom: 1px solid #aaa; margin: 12pt 0 4pt; padding-bottom: 2pt; }
-  h3 { font-size: 11pt; margin: 8pt 0 2pt; }
-  p { margin: 0 0 6pt; overflow-wrap: break-word; word-break: break-word; }
+  h1 { font-size: 1.636em; margin: 0 0 4pt; }
+  h2 { font-size: 1.182em; border-bottom: 1px solid #aaa; margin: 12pt 0 4pt; padding-bottom: 2pt; }
+  h3 { font-size: 1em; margin: 8pt 0 2pt; }
+  p { margin: 0 0 6pt; overflow-wrap: break-word; }
   ul { margin: 2pt 0 6pt; padding-left: 18pt; }
-  li { margin-bottom: 2pt; overflow-wrap: break-word; word-break: break-word; }
+  li { margin-bottom: 2pt; overflow-wrap: break-word; }
   a { color: #111; text-decoration: none; }
   strong { font-weight: bold; }
   pre, code { white-space: pre-wrap; overflow-wrap: break-word; font-family: inherit; font-size: inherit; }
@@ -44,14 +67,18 @@ function buildHtml(body: string, font: string, marginMm: number): string {
 </html>`
 }
 
-export default function PdfPreview({ markdown, font, pageSize, marginMm }: PdfPreviewProps) {
+export default function PdfPreview({
+  markdown, font, pageSize, marginMm,
+  fontSize = 11, textAlign = 'left', lineHeight = 1.5,
+  paddingTopMm, paddingRightMm, paddingBottomMm, paddingLeftMm,
+}: PdfPreviewProps) {
   const [srcDoc, setSrcDoc] = useState('')
   const { w, h } = PAGE_PX[pageSize]
 
   useEffect(() => {
     const body = marked.parse(markdown || '') as string
-    setSrcDoc(buildHtml(body, font, marginMm))
-  }, [markdown, font, pageSize, marginMm])
+    setSrcDoc(buildHtml(body, font, marginMm, fontSize, textAlign, lineHeight, paddingTopMm, paddingRightMm, paddingBottomMm, paddingLeftMm))
+  }, [markdown, font, pageSize, marginMm, fontSize, textAlign, lineHeight, paddingTopMm, paddingRightMm, paddingBottomMm, paddingLeftMm])
 
   return (
     <div className="h-full overflow-auto bg-muted/40 flex justify-center py-6">

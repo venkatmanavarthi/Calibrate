@@ -1,71 +1,107 @@
-import { BrowserWindow, app } from 'electron'
-import path from 'path'
-import fs from 'fs/promises'
 import { marked } from 'marked'
 import type { PdfExportRequest } from '../../../src/types/models'
+import { markdownToPdfmake } from './markdown-to-pdfmake'
 
-export async function exportToPdf(req: PdfExportRequest): Promise<void> {
-  const bodyHtml = await marked.parse(req.markdownContent)
-  const fullHtml = buildPrintableHtml(bodyHtml, req.marginMm, req.font)
-
-  const tempPath = path.join(app.getPath('temp'), `resume-print-${Date.now()}.html`)
-  await fs.writeFile(tempPath, fullHtml, 'utf-8')
-
-  const win = new BrowserWindow({
-    show: false,
-    webPreferences: { javascript: false }
-  })
-
-  await win.loadURL(`file://${tempPath}`)
-
-  const pdfBuffer = await win.webContents.printToPDF({
-    pageSize: req.pageSize,
-    printBackground: true,
-    margins: {
-      top: req.marginMm / 25.4,
-      bottom: req.marginMm / 25.4,
-      left: req.marginMm / 25.4,
-      right: req.marginMm / 25.4,
-      marginType: 'custom'
-    }
-  })
-
-  win.destroy()
-  await fs.unlink(tempPath).catch(() => {})
-  await fs.writeFile(req.destFilePath, pdfBuffer)
+const FONTS = {
+  Helvetica: {
+    normal: 'Helvetica',
+    bold: 'Helvetica-Bold',
+    italics: 'Helvetica-Oblique',
+    bolditalics: 'Helvetica-BoldOblique',
+  },
+  Times: {
+    normal: 'Times-Roman',
+    bold: 'Times-Bold',
+    italics: 'Times-Italic',
+    bolditalics: 'Times-BoldItalic',
+  },
 }
 
-function buildPrintableHtml(body: string, marginMm: number, font: string): string {
-  const fontStack = `'${font}', Georgia, 'Times New Roman', serif`
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8" />
-<style>
-  @page { margin: ${marginMm}mm; }
-  * { box-sizing: border-box; }
-  body {
-    font-family: ${fontStack};
-    font-size: 11pt;
-    line-height: 1.5;
-    color: #111;
-    margin: 0;
-    padding: 0;
-    overflow-wrap: break-word;
-    word-break: break-word;
+const FONT_MAP: Record<string, string> = {
+  'Georgia': 'Times',
+  'Garamond': 'Times',
+  'Times New Roman': 'Times',
+  'Arial': 'Helvetica',
+  'Calibri': 'Helvetica',
+  'Helvetica': 'Helvetica',
+}
+
+function mmToPt(mm: number): number {
+  return (mm * 72) / 25.4
+}
+
+// Standard PDF font names that pdfkit resolves internally without loading files
+const STANDARD_PDF_FONTS = new Set([
+  'Helvetica', 'Helvetica-Bold', 'Helvetica-Oblique', 'Helvetica-BoldOblique',
+  'Times-Roman', 'Times-Bold', 'Times-Italic', 'Times-BoldItalic',
+  'Courier', 'Courier-Bold', 'Courier-Oblique', 'Courier-BoldOblique',
+  'Symbol', 'ZapfDingbats',
+])
+
+// Configure pdfmake singleton once at module load
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfmake = require('pdfmake')
+pdfmake.addFonts(FONTS)
+pdfmake.setUrlAccessPolicy(() => false)
+// Allow only standard PDF font name resolution — no arbitrary local files
+pdfmake.setLocalAccessPolicy((path: string) => STANDARD_PDF_FONTS.has(path))
+
+export async function exportToPdf(req: PdfExportRequest): Promise<void> {
+  console.log('[pdf:export] received:', { fontSize: req.fontSize, textAlign: req.textAlign, lineHeight: req.lineHeight, paddingTopMm: req.paddingTopMm, paddingRightMm: req.paddingRightMm, paddingBottomMm: req.paddingBottomMm, paddingLeftMm: req.paddingLeftMm })
+  const bodyFont = FONT_MAP[req.font] ?? 'Times'
+  const marginPt = mmToPt(req.marginMm)
+  const topPt = req.paddingTopMm !== undefined ? mmToPt(req.paddingTopMm) : marginPt
+  const rightPt = req.paddingRightMm !== undefined ? mmToPt(req.paddingRightMm) : marginPt
+  const bottomPt = req.paddingBottomMm !== undefined ? mmToPt(req.paddingBottomMm) : marginPt
+  const leftPt = req.paddingLeftMm !== undefined ? mmToPt(req.paddingLeftMm) : marginPt
+  const pageWidthPt = req.pageSize === 'Letter' ? 612 : 595
+  const usableWidth = pageWidthPt - leftPt - rightPt
+  const fontSize = req.fontSize ?? 11
+  const lineHeight = req.lineHeight ?? 1.4
+  const alignment = req.textAlign ?? 'left'
+
+  const tokens = Array.from(marked.lexer(req.markdownContent))
+  const content = markdownToPdfmake(tokens, usableWidth)
+
+  const docDef = {
+    pageSize: req.pageSize,
+    pageMargins: [leftPt, topPt, rightPt, bottomPt],
+    info: { title: 'Resume', language: 'en' },
+    defaultStyle: { font: bodyFont, fontSize, lineHeight, alignment },
+    styles: {
+      h1: {
+        font: bodyFont,
+        fontSize: Math.round(fontSize * 1.64),
+        bold: true,
+        margin: [0, 0, 0, 3],
+      },
+      h2: {
+        font: bodyFont,
+        fontSize: Math.round(fontSize * 1.18),
+        bold: true,
+        margin: [0, 10, 0, 0],
+      },
+      h3: {
+        font: bodyFont,
+        fontSize,
+        bold: true,
+        margin: [0, 6, 0, 1],
+      },
+      paragraph: {
+        font: bodyFont,
+        fontSize,
+        lineHeight,
+        margin: [0, 0, 0, 4],
+      },
+      list: {
+        font: bodyFont,
+        fontSize,
+        lineHeight,
+      },
+    },
+    content,
   }
-  h1 { font-size: 18pt; margin: 0 0 4pt; }
-  h2 { font-size: 13pt; border-bottom: 1px solid #aaa; margin: 12pt 0 4pt; padding-bottom: 2pt; }
-  h3 { font-size: 11pt; margin: 8pt 0 2pt; }
-  p { margin: 0 0 6pt; overflow-wrap: break-word; word-break: break-word; overflow: hidden; }
-  p::after { content: ''; display: block; clear: both; }
-  ul { margin: 2pt 0 6pt; padding-left: 18pt; }
-  li { margin-bottom: 2pt; overflow-wrap: break-word; word-break: break-word; }
-  a { color: #111; text-decoration: none; }
-  strong { font-weight: bold; }
-  pre, code { white-space: pre-wrap; overflow-wrap: break-word; font-family: inherit; font-size: inherit; }
-</style>
-</head>
-<body>${body}</body>
-</html>`
+
+  const doc = pdfmake.createPdf(docDef)
+  await doc.write(req.destFilePath)
 }

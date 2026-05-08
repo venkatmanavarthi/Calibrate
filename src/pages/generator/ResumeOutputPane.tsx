@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react'
-import { FileDown, Eye, Code2, FileText, SlidersHorizontal, AlignLeft, AlignCenter, AlignRight, AlignJustify, X, Type } from 'lucide-react'
+import { FileDown, Eye, Code2, FileText, SlidersHorizontal, AlignLeft, AlignCenter, AlignRight, AlignJustify, X, Type, BarChart2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import MarkdownEditor, { type MarkdownEditorHandle } from '@/components/editor/MarkdownEditor'
 import ResumePreview from '@/components/editor/ResumePreview'
 import PdfPreview from '@/components/editor/PdfPreview'
 import HallucinationWarningBanner from '@/components/shared/HallucinationWarning'
+import ResumeRatingPanel from '@/components/shared/ResumeRatingPanel'
 import RevisionBar from './RevisionBar'
 import { useGeneratorStore } from '@/stores/generator.store'
 import { useSettingsStore } from '@/stores/settings.store'
@@ -22,10 +23,13 @@ export default function ResumeOutputPane({ onRevise }: Props) {
     warnings, clearWarnings,
     viewMode, setViewMode,
     setSelection,
+    jobDescription,
+    activeProvider, activeModel,
   } = useGeneratorStore()
   const { settings, save } = useSettingsStore()
   const [exporting, setExporting] = useState(false)
   const [showStylePanel, setShowStylePanel] = useState(false)
+  const [showRatingPanel, setShowRatingPanel] = useState(false)
   const [fontSize, setFontSize] = useState(14)
   const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right' | 'justify'>('left')
   const [lineHeight, setLineHeight] = useState(1.6)
@@ -142,10 +146,21 @@ export default function ResumeOutputPane({ onRevise }: Props) {
               size="sm"
               variant={showStylePanel ? 'secondary' : 'ghost'}
               className="h-7 w-7 p-0"
-              onClick={() => setShowStylePanel((v) => !v)}
+              onClick={() => { setShowStylePanel((v) => !v); setShowRatingPanel(false) }}
               title="Typography"
             >
               <SlidersHorizontal size={13} />
+            </Button>
+
+            <Button
+              size="sm"
+              variant={showRatingPanel ? 'secondary' : 'ghost'}
+              className="h-7 w-7 p-0"
+              onClick={() => { setShowRatingPanel((v) => !v); setShowStylePanel(false) }}
+              title="Rate Resume"
+              disabled={!generatedMarkdown || !jobDescription}
+            >
+              <BarChart2 size={13} />
             </Button>
           </div>
         )}
@@ -193,6 +208,17 @@ export default function ResumeOutputPane({ onRevise }: Props) {
             />
           )}
         </div>
+
+        {/* Right rating sidebar */}
+        {showRatingPanel && (
+          <ResumeRatingPanel
+            resumeMarkdown={generatedMarkdown}
+            jobDescription={jobDescription}
+            provider={activeProvider}
+            model={activeModel}
+            onClose={() => setShowRatingPanel(false)}
+          />
+        )}
 
         {/* Right style sidebar */}
         {showStylePanel && (

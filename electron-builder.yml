@@ -26,6 +26,9 @@ mac:
     - target: zip
       arch: [x64, arm64]
   hardenedRuntime: true
+  entitlements: assets/entitlements.mac.plist
+  entitlementsInherit: assets/entitlements.mac.plist
+  notarize: false
 
 win:
   icon: assets/icons/win/icon.ico

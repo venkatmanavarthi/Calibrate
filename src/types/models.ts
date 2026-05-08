@@ -106,6 +106,7 @@ export interface LMStudioConfig {
 export interface CustomPrompts {
   generation?: string
   revision?: string
+  analysis?: string
 }
 
 export interface PromptSnapshot {
@@ -113,6 +114,7 @@ export interface PromptSnapshot {
   savedAt: string
   generation: string
   revision: string
+  analysis: string
 }
 
 export interface AppSettings {
@@ -177,6 +179,10 @@ export interface ExportBundle {
   profiles: ExperienceProfile[]
   templates: ResumeTemplate[]
 }
+
+export type CalibrateFile =
+  | { version: 1; type: 'template'; template: ResumeTemplate }
+  | { version: 1; type: 'prompts'; generation: string; revision: string }
 
 export interface ResumeRating {
   overallScore: number

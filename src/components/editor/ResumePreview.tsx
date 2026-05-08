@@ -29,7 +29,7 @@ export default function ResumePreview({
         'prose prose-sm max-w-none h-full overflow-auto',
         'prose-headings:font-bold prose-h2:border-b prose-h2:pb-1',
         'prose-ul:list-disc prose-li:my-0.5',
-        '[&_p]:overflow-hidden',
+        '[&_p]:overflow-hidden [&_p]:mt-0 [&_p]:mb-1',
         className
       )}
       style={{

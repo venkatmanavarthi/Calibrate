@@ -85,7 +85,7 @@ export function registerAiIpc(win: BrowserWindow): void {
   ipcMain.handle('ai:rateResume', async (_, req: RateResumeRequest): Promise<ResumeRating> => {
     const settings = await loadSettings()
     const provider = await buildProvider(req.provider, settings)
-    const messages = buildRatingMessages(req.resumeMarkdown, req.jobDescription)
+    const messages = buildRatingMessages(req.resumeMarkdown, req.jobDescription, settings.customPrompts?.analysis)
     const raw = await provider.generate(messages, { model: req.model, temperature: 0.1 }, () => {})
     const cleaned = raw.replace(/^```(?:json)?\r?\n?/, '').replace(/\r?\n?```\s*$/, '').trim()
     return JSON.parse(cleaned) as ResumeRating

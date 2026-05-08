@@ -1,6 +1,6 @@
 import type { Message } from '../types'
 
-const SYSTEM_PROMPT = `You are an expert resume analyst and ATS (Applicant Tracking System) specialist. Your job is to evaluate a resume against a job description and return a structured JSON rating.
+const DEFAULT_SYSTEM_PROMPT = `You are an expert resume analyst and ATS (Applicant Tracking System) specialist. Your job is to evaluate a resume against a job description and return a structured JSON rating.
 
 Scoring rubric:
 
@@ -43,9 +43,9 @@ For missingKeywords: list the important keywords from the JD missing from the re
 For impactDetails: list 2-4 observations about the impact/metrics (e.g. "3 of 8 bullets are quantified" or "No metrics in the Projects section").
 For summary: write a brief overall assessment focused on actionable insight.`
 
-export function buildRatingMessages(resumeMarkdown: string, jobDescription: string): Message[] {
+export function buildRatingMessages(resumeMarkdown: string, jobDescription: string, customPrompt?: string): Message[] {
   return [
-    { role: 'system' as const, content: SYSTEM_PROMPT },
+    { role: 'system' as const, content: customPrompt?.trim() || DEFAULT_SYSTEM_PROMPT },
     {
       role: 'user' as const,
       content: `JOB DESCRIPTION:\n${jobDescription}\n\n---\n\nRESUME:\n${resumeMarkdown}`

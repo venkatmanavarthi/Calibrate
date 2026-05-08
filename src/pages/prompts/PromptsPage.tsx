@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Trash2 } from 'lucide-react'
+import { Trash2, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { useSettingsStore } from '@/stores/settings.store'
-import { DEFAULT_GENERATION_PROMPT, DEFAULT_REVISION_PROMPT } from '@/lib/default-prompts'
+import { DEFAULT_GENERATION_PROMPT, DEFAULT_REVISION_PROMPT, DEFAULT_ANALYSIS_PROMPT } from '@/lib/default-prompts'
 import type { PromptSnapshot } from '@/types/models'
 
 const HISTORY_CAP = 20
@@ -15,12 +15,14 @@ export default function PromptsPage() {
 
   const [generationDraft, setGenerationDraft] = useState(DEFAULT_GENERATION_PROMPT)
   const [revisionDraft, setRevisionDraft] = useState(DEFAULT_REVISION_PROMPT)
+  const [analysisDraft, setAnalysisDraft] = useState(DEFAULT_ANALYSIS_PROMPT)
   const [restoredId, setRestoredId] = useState<string | null>(null)
 
   useEffect(() => {
     if (settings) {
       setGenerationDraft(settings.customPrompts?.generation ?? DEFAULT_GENERATION_PROMPT)
       setRevisionDraft(settings.customPrompts?.revision ?? DEFAULT_REVISION_PROMPT)
+      setAnalysisDraft(settings.customPrompts?.analysis ?? DEFAULT_ANALYSIS_PROMPT)
     }
   }, [settings])
 
@@ -28,7 +30,8 @@ export default function PromptsPage() {
 
   const savedGeneration = settings.customPrompts?.generation ?? DEFAULT_GENERATION_PROMPT
   const savedRevision = settings.customPrompts?.revision ?? DEFAULT_REVISION_PROMPT
-  const isDirty = generationDraft !== savedGeneration || revisionDraft !== savedRevision
+  const savedAnalysis = settings.customPrompts?.analysis ?? DEFAULT_ANALYSIS_PROMPT
+  const isDirty = generationDraft !== savedGeneration || revisionDraft !== savedRevision || analysisDraft !== savedAnalysis
 
   const handleSave = () => {
     const snapshot: PromptSnapshot = {
@@ -36,10 +39,11 @@ export default function PromptsPage() {
       savedAt: new Date().toISOString(),
       generation: savedGeneration,
       revision: savedRevision,
+      analysis: savedAnalysis,
     }
     const newHistory = [snapshot, ...(settings.promptHistory ?? [])].slice(0, HISTORY_CAP)
     save({
-      customPrompts: { generation: generationDraft, revision: revisionDraft },
+      customPrompts: { generation: generationDraft, revision: revisionDraft, analysis: analysisDraft },
       promptHistory: newHistory,
     })
     setRestoredId(null)
@@ -48,6 +52,7 @@ export default function PromptsPage() {
   const handleRestore = (snapshot: PromptSnapshot) => {
     setGenerationDraft(snapshot.generation)
     setRevisionDraft(snapshot.revision)
+    setAnalysisDraft(snapshot.analysis ?? DEFAULT_ANALYSIS_PROMPT)
     setRestoredId(snapshot.id)
   }
 
@@ -61,9 +66,14 @@ export default function PromptsPage() {
 
   return (
     <div className="p-8 max-w-2xl space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold">Prompts</h2>
-        <p className="text-muted-foreground text-sm mt-1">Customize the AI instructions used when generating and revising resumes.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Prompts</h2>
+          <p className="text-muted-foreground text-sm mt-1">Customize the AI instructions used when generating and revising resumes.</p>
+        </div>
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.api.promptsExportCalibrate()}>
+          <Share2 size={14} /> Share
+        </Button>
       </div>
 
       <div className="bg-muted rounded-lg p-3 text-sm text-muted-foreground">
@@ -113,6 +123,31 @@ export default function PromptsPage() {
           variant="outline"
           size="sm"
           onClick={() => setRevisionDraft(DEFAULT_REVISION_PROMPT)}
+        >
+          Reset to Default
+        </Button>
+      </div>
+
+      <Separator />
+
+      {/* Analysis Prompt */}
+      <div className="space-y-2">
+        <div>
+          <Label className="text-base font-semibold">Analysis Prompt</Label>
+          <p className="text-xs text-muted-foreground mt-0.5">System prompt used when scoring a resume against a job description. Must instruct the AI to return JSON matching the expected shape.</p>
+        </div>
+        <Textarea
+          className="min-h-[200px] font-mono text-xs"
+          value={analysisDraft}
+          onChange={(e) => setAnalysisDraft(e.target.value)}
+        />
+        {analysisDraft.trim() === '' && (
+          <p className="text-xs text-amber-600">Empty prompt falls back to the built-in default.</p>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setAnalysisDraft(DEFAULT_ANALYSIS_PROMPT)}
         >
           Reset to Default
         </Button>

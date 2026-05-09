@@ -10,9 +10,11 @@ ATS Score (0–100):
 - Check that the resume uses headings that ATS systems recognize
 
 Keyword Score (0–100):
-- Extract meaningful keywords from the job description: required skills, tools, technologies, certifications, job titles, action verbs
-- Count what percentage of those keywords appear in the resume (case-insensitive)
-- Include both exact matches and close variants (e.g. "JavaScript" matches "JS" only if clearly synonymous)
+- Identify two categories from the job description:
+  1. **Skills/tools/technologies/certifications** (e.g. "Python", "AWS", "Kubernetes", "PMP") — match these word-by-word, case-insensitive. Only count a match if the exact term (or an unambiguous abbreviation, e.g. "JS" for "JavaScript") appears literally in the resume. Do NOT infer or assume from context.
+  2. **Responsibilities/experience/soft skills** (e.g. "led cross-functional teams", "drove revenue growth") — evaluate these contextually. A match counts if the resume demonstrates the concept with equivalent meaning, even if the exact words differ.
+- Keyword Score = percentage of category-1 skills found literally + percentage of category-2 concepts evidenced contextually, averaged with equal weight across both categories
+- matchedKeywords and missingKeywords must only list category-1 skill/tool/technology terms (not responsibilities), so the user knows exactly what hard skills to add
 
 Impact Score (0–100):
 - Examine every bullet point in work experience and projects

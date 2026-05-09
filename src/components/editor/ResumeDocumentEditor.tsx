@@ -11,6 +11,12 @@ interface Props {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+const URL_FIELDS = new Set(['linkedin', 'github', 'website'])
+
+function displayValue(field: string, value: string): string {
+  return URL_FIELDS.has(field) ? value.replace(/^https?:\/\//i, '') : value
+}
+
 function matchesTarget(a: SelectionTarget | null | undefined, b: SelectionTarget): boolean {
   if (!a) return false
   return JSON.stringify(a) === JSON.stringify(b)
@@ -101,7 +107,7 @@ function ContactSection({ doc, selected, editing, onSelect }: {
                 className="px-1 py-0.5"
                 inline
               >
-                {value}
+                {displayValue(field, value)}
               </SelectableElement>
               {i < contactParts.length - 1 && <span className="text-muted-foreground/40">|</span>}
             </span>
@@ -278,8 +284,14 @@ export default function ResumeDocumentEditor({ doc, selectedTarget, editingTarge
 
       <style>{`
         @keyframes glow {
-          0%, 100% { box-shadow: 0 0 0 0 transparent; background-color: transparent; }
-          50%       { box-shadow: 0 0 0 3px hsl(var(--primary) / 0.25); background-color: hsl(var(--primary) / 0.07); }
+          0%, 100% {
+            box-shadow: 0 0 0 1px hsl(var(--primary) / 0.2), 0 0 8px hsl(var(--primary) / 0.12);
+            background-color: hsl(var(--primary) / 0.04);
+          }
+          50% {
+            box-shadow: 0 0 0 3px hsl(var(--primary) / 0.35), 0 0 16px hsl(var(--primary) / 0.22);
+            background-color: hsl(var(--primary) / 0.09);
+          }
         }
         .animate-glow { animation: glow 1.4s ease-in-out infinite; }
       `}</style>

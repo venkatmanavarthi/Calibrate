@@ -1,44 +1,44 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { FileDown, Eye, Code2, FileText, SlidersHorizontal, AlignLeft, AlignCenter, AlignRight, AlignJustify, X, Type, BarChart2, ZoomIn, ZoomOut } from 'lucide-react'
+import { FileDown, FileText, SlidersHorizontal, X, Type, BarChart2, ZoomIn, ZoomOut, Mail, Layers } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import MarkdownEditor, { type MarkdownEditorHandle } from '@/components/editor/MarkdownEditor'
-import ResumePreview from '@/components/editor/ResumePreview'
 import PdfPreview from '@/components/editor/PdfPreview'
+import ResumeDocumentPdfPreview from '@/components/editor/ResumeDocumentPdfPreview'
+import ResumeDocumentEditor, { type SelectionTarget } from '@/components/editor/ResumeDocumentEditor'
+import SelectionToolbar from '@/components/editor/SelectionToolbar'
 import HallucinationWarningBanner from '@/components/shared/HallucinationWarning'
 import ResumeRatingPanel from '@/components/shared/ResumeRatingPanel'
-import RevisionBar from './RevisionBar'
+import PdfCookingAnimation from '@/components/shared/PdfCookingAnimation'
+import { resumeDocumentToMarkdown } from '@/lib/resume-doc-to-markdown'
 import { useGeneratorStore } from '@/stores/generator.store'
 import { useSettingsStore } from '@/stores/settings.store'
 import type { AppSettings } from '@/types/models'
 
-interface Props {
-  onRevise: (instruction: string, editorHandle: MarkdownEditorHandle | null) => void
-}
-
-export default function ResumeOutputPane({ onRevise }: Props) {
-  const editorRef = useRef<MarkdownEditorHandle>(null)
+export default function ResumeOutputPane() {
   const {
-    generatedMarkdown, setGeneratedMarkdown,
+    resumeDocument, setResumeDocument,
     warnings, clearWarnings,
+    isGenerating,
     viewMode, setViewMode,
-    setSelection,
     jobDescription,
     activeProvider, activeModel,
   } = useGeneratorStore()
   const { settings, save } = useSettingsStore()
   const [exporting, setExporting] = useState(false)
+  const [emailing, setEmailing] = useState(false)
+  const [selectedTarget, setSelectedTarget] = useState<SelectionTarget | null>(null)
+  const [selectedRect, setSelectedRect] = useState<DOMRect | null>(null)
+  const [editingTarget, setEditingTarget] = useState<SelectionTarget | null>(null)
   const [showStylePanel, setShowStylePanel] = useState(false)
   const [showRatingPanel, setShowRatingPanel] = useState(false)
 
   useEffect(() => {
-    if (!generatedMarkdown) {
+    if (!resumeDocument) {
       setShowRatingPanel(false)
-      if (viewMode === 'pdf') setViewMode('preview')
     }
-  }, [generatedMarkdown]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [resumeDocument])
+
   const [fontSize, setFontSize] = useState(14)
-  const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right' | 'justify'>('left')
   const [lineHeight, setLineHeight] = useState(1.6)
   const [padTop, setPadTop] = useState(15)
   const [padRight, setPadRight] = useState(15)
@@ -72,19 +72,19 @@ export default function ResumeOutputPane({ onRevise }: Props) {
   }, [])
 
   const handleExportPdf = async () => {
-    if (!settings) return
+    if (!settings || !resumeDocument) return
     setExporting(true)
     try {
       const dest = await window.api.pdfChooseDestination()
       if (!dest.filePath) return
       await window.api.pdfExport({
-        markdownContent: generatedMarkdown,
+        markdownContent: '',
+        resumeDocument,
         destFilePath: dest.filePath,
         pageSize: settings.pdfPageSize,
         marginMm: settings.pdfMarginMm,
         font: settings.pdfFont,
         fontSize: Math.round(fontSize / 1.333),
-        textAlign,
         lineHeight,
         paddingTopMm: padTop,
         paddingRightMm: padRight,
@@ -96,31 +96,99 @@ export default function ResumeOutputPane({ onRevise }: Props) {
     }
   }
 
-  const handleRevise = (instruction: string) => {
-    onRevise(instruction, editorRef.current)
+  const handleEmailPdf = async () => {
+    if (!settings || !resumeDocument) return
+    setEmailing(true)
+    try {
+      await window.api.pdfEmailExport({
+        markdownContent: '',
+        resumeDocument,
+        destFilePath: '',
+        pageSize: settings.pdfPageSize,
+        marginMm: settings.pdfMarginMm,
+        font: settings.pdfFont,
+        fontSize: Math.round(fontSize / 1.333),
+        lineHeight,
+        paddingTopMm: padTop,
+        paddingRightMm: padRight,
+        paddingBottomMm: padBottom,
+        paddingLeftMm: padLeft,
+      })
+    } finally {
+      setEmailing(false)
+    }
   }
+
+  const handleRemoveElement = useCallback((target: SelectionTarget) => {
+    if (!resumeDocument) return
+    const doc = JSON.parse(JSON.stringify(resumeDocument)) as typeof resumeDocument
+
+    switch (target.type) {
+      case 'contact':
+        (doc.contact as unknown as Record<string, unknown>)[target.field] = undefined
+        break
+      case 'summary':
+        doc.sections[target.sectionIndex].text = undefined
+        break
+      case 'section':
+        doc.sections.splice(target.sectionIndex, 1)
+        break
+      case 'skills':
+        doc.sections[target.sectionIndex].skills = []
+        break
+      case 'entry':
+        doc.sections[target.sectionIndex].entries?.splice(target.entryIndex, 1)
+        break
+      case 'bullet':
+        doc.sections[target.sectionIndex].entries?.[target.entryIndex]?.bullets?.splice(target.bulletIndex, 1)
+        break
+      case 'skill':
+        doc.sections[target.sectionIndex].skills?.splice(target.skillIndex, 1)
+        break
+    }
+
+    setResumeDocument(doc)
+    setSelectedTarget(null)
+    setSelectedRect(null)
+  }, [resumeDocument, setResumeDocument])
+
+  const handleEditElement = useCallback(async (target: SelectionTarget, instruction?: string) => {
+    if (!resumeDocument || !settings) return
+    const requestId = crypto.randomUUID()
+    setSelectedTarget(null)
+    setSelectedRect(null)
+    setEditingTarget(target)
+    try {
+      const { resumeDocument: updated } = await window.api.aiEditElement({
+        requestId,
+        resumeDocument,
+        target,
+        instruction,
+        provider: activeProvider,
+        model: activeModel,
+      })
+      setResumeDocument(updated)
+    } catch (err) {
+      console.error('Edit element failed:', err)
+    } finally {
+      setEditingTarget(null)
+    }
+  }, [resumeDocument, settings, activeProvider, activeModel, setResumeDocument])
+
+  useEffect(() => {
+    if (viewMode !== 'structured') {
+      setSelectedTarget(null)
+      setSelectedRect(null)
+    }
+  }, [viewMode])
+
+  const resumeMarkdownForRating = resumeDocument ? resumeDocumentToMarkdown(resumeDocument) : ''
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Toolbar */}
       <div className="flex items-center gap-2 px-4 py-2.5 border-b bg-muted/30 flex-shrink-0">
         <div className="flex gap-1 bg-background border rounded-md p-0.5">
-          <Button
-            variant={viewMode === 'edit' ? 'secondary' : 'ghost'}
-            size="sm"
-            className="h-6 px-2 gap-1 text-xs"
-            onClick={() => setViewMode('edit')}
-          >
-            <Code2 size={12} /> Edit
-          </Button>
-          <Button
-            variant={viewMode === 'preview' ? 'secondary' : 'ghost'}
-            size="sm"
-            className="h-6 px-2 gap-1 text-xs"
-            onClick={() => setViewMode('preview')}
-          >
-            <Eye size={12} /> Preview
-          </Button>
           <Button
             variant={viewMode === 'pdf' ? 'secondary' : 'ghost'}
             size="sm"
@@ -129,6 +197,16 @@ export default function ResumeOutputPane({ onRevise }: Props) {
           >
             <FileText size={12} /> PDF
           </Button>
+          {resumeDocument && (
+            <Button
+              variant={viewMode === 'structured' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-6 px-2 gap-1 text-xs"
+              onClick={() => setViewMode('structured')}
+            >
+              <Layers size={12} /> Structured
+            </Button>
+          )}
         </div>
 
         {viewMode === 'pdf' && (
@@ -155,7 +233,6 @@ export default function ResumeOutputPane({ onRevise }: Props) {
 
         {settings && (
           <div className="ml-auto flex items-center gap-2">
-            {/* Font */}
             <Select
               value={settings.pdfFont}
               onValueChange={(v) => save({ pdfFont: v as AppSettings['pdfFont'] })}
@@ -173,7 +250,6 @@ export default function ResumeOutputPane({ onRevise }: Props) {
               </SelectContent>
             </Select>
 
-            {/* Page size */}
             <Select
               value={settings.pdfPageSize}
               onValueChange={(v) => save({ pdfPageSize: v as 'Letter' | 'A4' })}
@@ -191,10 +267,21 @@ export default function ResumeOutputPane({ onRevise }: Props) {
               size="sm"
               variant="outline"
               className="gap-1.5 h-7"
-              disabled={!generatedMarkdown || exporting}
+              disabled={!resumeDocument || exporting}
               onClick={handleExportPdf}
             >
               <FileDown size={13} /> {exporting ? 'Exporting…' : 'Export PDF'}
+            </Button>
+
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 h-7"
+              disabled={!resumeDocument || emailing}
+              onClick={handleEmailPdf}
+              title="Open in Mail with PDF attached"
+            >
+              <Mail size={13} /> {emailing ? 'Opening…' : 'Email'}
             </Button>
 
             <Button
@@ -213,7 +300,7 @@ export default function ResumeOutputPane({ onRevise }: Props) {
               className="h-7 w-7 p-0"
               onClick={() => { setShowRatingPanel((v) => !v); setShowStylePanel(false) }}
               title="Rate Resume"
-              disabled={!generatedMarkdown || !jobDescription}
+              disabled={!resumeDocument || !jobDescription}
             >
               <BarChart2 size={13} />
             </Button>
@@ -221,40 +308,59 @@ export default function ResumeOutputPane({ onRevise }: Props) {
         )}
       </div>
 
-      {/* Hallucination warnings */}
       <HallucinationWarningBanner warnings={warnings} onDismiss={clearWarnings} />
 
-      {/* Editor / Preview / PDF Preview + Style Sidebar */}
       <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 overflow-hidden">
-          {viewMode === 'edit' ? (
-            <MarkdownEditor
-              ref={editorRef}
-              value={generatedMarkdown}
-              onChange={setGeneratedMarkdown}
-              onSelectionChange={setSelection}
-              className="h-full"
+        <div className="flex-1 overflow-hidden relative">
+          {(isGenerating || exporting) && (
+            <PdfCookingAnimation
+              label={isGenerating ? 'Crafting your resume…' : undefined}
             />
-          ) : viewMode === 'preview' ? (
-            <ResumePreview
-              markdown={generatedMarkdown}
-              className="h-full"
-              fontSize={fontSize}
-              textAlign={textAlign}
+          )}
+
+          {viewMode === 'structured' && resumeDocument ? (
+            <>
+              <ResumeDocumentEditor
+                doc={resumeDocument}
+                selectedTarget={selectedTarget}
+                editingTarget={editingTarget}
+                onSelect={(target, rect) => {
+                  setSelectedTarget(target)
+                  setSelectedRect(target ? rect : null)
+                }}
+              />
+              {selectedTarget && selectedRect && (
+                <SelectionToolbar
+                  target={selectedTarget}
+                  anchorRect={selectedRect}
+                  onRewrite={(t) => handleEditElement(t)}
+                  onPromptAi={(t, p) => handleEditElement(t, p)}
+                  onRemove={handleRemoveElement}
+                  onDismiss={() => { setSelectedTarget(null); setSelectedRect(null) }}
+                />
+              )}
+            </>
+          ) : resumeDocument ? (
+            <ResumeDocumentPdfPreview
+              doc={resumeDocument}
+              font={settings?.pdfFont ?? 'Georgia'}
+              pageSize={settings?.pdfPageSize ?? 'Letter'}
+              marginMm={settings?.pdfMarginMm ?? 15}
+              fontSize={Math.round(fontSize / 1.333)}
               lineHeight={lineHeight}
               paddingTopMm={padTop}
               paddingRightMm={padRight}
               paddingBottomMm={padBottom}
               paddingLeftMm={padLeft}
+              zoom={pdfZoom}
             />
           ) : (
             <PdfPreview
-              markdown={generatedMarkdown}
+              markdown=""
               font={settings?.pdfFont ?? 'Georgia'}
               pageSize={settings?.pdfPageSize ?? 'Letter'}
               marginMm={settings?.pdfMarginMm ?? 15}
               fontSize={Math.round(fontSize / 1.333)}
-              textAlign={textAlign}
               lineHeight={lineHeight}
               paddingTopMm={padTop}
               paddingRightMm={padRight}
@@ -276,7 +382,7 @@ export default function ResumeOutputPane({ onRevise }: Props) {
             </div>
             <div className="flex-1 min-w-0">
               <ResumeRatingPanel
-                resumeMarkdown={generatedMarkdown}
+                resumeMarkdown={resumeMarkdownForRating}
                 jobDescription={jobDescription}
                 provider={activeProvider}
                 model={activeModel}
@@ -295,134 +401,88 @@ export default function ResumeOutputPane({ onRevise }: Props) {
             >
               <div className="absolute inset-y-0 -left-1 -right-1" />
             </div>
-          <div className="flex-1 min-w-0 flex flex-col bg-background">
-            {/* Header */}
-            <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30">
-              <div className="flex items-center gap-1.5">
-                <Type size={12} className="text-muted-foreground" />
-                <span className="text-xs font-medium">Typography</span>
-              </div>
-              <button
-                onClick={() => setShowStylePanel(false)}
-                className="text-muted-foreground hover:text-foreground rounded p-0.5 transition-colors"
-              >
-                <X size={12} />
-              </button>
-            </div>
-
-            {/* Controls */}
-            <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-5">
-              {/* Font Size */}
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Font Size</span>
-                  <span className="text-xs tabular-nums bg-muted rounded px-1.5 py-0.5 font-medium">{fontSize}px</span>
+            <div className="flex-1 min-w-0 flex flex-col bg-background">
+              <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30">
+                <div className="flex items-center gap-1.5">
+                  <Type size={12} className="text-muted-foreground" />
+                  <span className="text-xs font-medium">Typography</span>
                 </div>
-                <input
-                  type="range"
-                  min={10}
-                  max={22}
-                  step={1}
-                  value={fontSize}
-                  onChange={(e) => setFontSize(Number(e.target.value))}
-                  className="w-full accent-primary cursor-pointer"
-                />
-                <div className="flex justify-between text-[10px] text-muted-foreground">
-                  <span>10px</span><span>22px</span>
-                </div>
+                <button
+                  onClick={() => setShowStylePanel(false)}
+                  className="text-muted-foreground hover:text-foreground rounded p-0.5 transition-colors"
+                >
+                  <X size={12} />
+                </button>
               </div>
 
-              {/* Alignment */}
-              <div className="flex flex-col gap-2">
-                <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Alignment</span>
-                <div className="grid grid-cols-4 gap-1">
-                  {([
-                    { value: 'left', Icon: AlignLeft, label: 'Left' },
-                    { value: 'center', Icon: AlignCenter, label: 'Center' },
-                    { value: 'right', Icon: AlignRight, label: 'Right' },
-                    { value: 'justify', Icon: AlignJustify, label: 'Justify' },
-                  ] as const).map(({ value, Icon, label }) => (
-                    <Button
-                      key={value}
-                      variant={textAlign === value ? 'secondary' : 'ghost'}
-                      size="sm"
-                      className="h-8 p-0"
-                      onClick={() => setTextAlign(value)}
-                      title={label}
-                    >
-                      <Icon size={13} />
-                    </Button>
-                  ))}
+              <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-5">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Font Size</span>
+                    <span className="text-xs tabular-nums bg-muted rounded px-1.5 py-0.5 font-medium">{fontSize}px</span>
+                  </div>
+                  <input
+                    type="range" min={10} max={22} step={1} value={fontSize}
+                    onChange={(e) => setFontSize(Number(e.target.value))}
+                    className="w-full accent-primary cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                    <span>10px</span><span>22px</span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Line Height */}
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Line Height</span>
-                  <span className="text-xs tabular-nums bg-muted rounded px-1.5 py-0.5 font-medium">{lineHeight.toFixed(1)}</span>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Line Height</span>
+                    <span className="text-xs tabular-nums bg-muted rounded px-1.5 py-0.5 font-medium">{lineHeight.toFixed(1)}</span>
+                  </div>
+                  <input
+                    type="range" min={1.2} max={2.4} step={0.1} value={lineHeight}
+                    onChange={(e) => setLineHeight(Number(e.target.value))}
+                    className="w-full accent-primary cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                    <span>1.2</span><span>2.4</span>
+                  </div>
                 </div>
-                <input
-                  type="range"
-                  min={1.2}
-                  max={2.4}
-                  step={0.1}
-                  value={lineHeight}
-                  onChange={(e) => setLineHeight(Number(e.target.value))}
-                  className="w-full accent-primary cursor-pointer"
-                />
-                <div className="flex justify-between text-[10px] text-muted-foreground">
-                  <span>1.2</span><span>2.4</span>
-                </div>
-              </div>
 
-              {/* Padding */}
-              <div className="flex flex-col gap-2">
-                <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Padding (mm)</span>
-                <div className="flex flex-col gap-1.5">
-                  {([
-                    { label: 'Top', value: padTop, set: setPadTop },
-                    { label: 'Right', value: padRight, set: setPadRight },
-                    { label: 'Bottom', value: padBottom, set: setPadBottom },
-                    { label: 'Left', value: padLeft, set: setPadLeft },
-                  ] as const).map(({ label, value, set }) => (
-                    <div key={label} className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground w-12">{label}</span>
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="number"
-                          min={0}
-                          max={50}
-                          value={value}
-                          onChange={(e) => set(Math.max(0, Math.min(50, Number(e.target.value))))}
-                          className="w-14 text-center text-xs h-7 rounded border border-border bg-background tabular-nums focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                        <span className="text-[10px] text-muted-foreground">mm</span>
+                <div className="flex flex-col gap-2">
+                  <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Padding (mm)</span>
+                  <div className="flex flex-col gap-1.5">
+                    {([
+                      { label: 'Top', value: padTop, set: setPadTop },
+                      { label: 'Right', value: padRight, set: setPadRight },
+                      { label: 'Bottom', value: padBottom, set: setPadBottom },
+                      { label: 'Left', value: padLeft, set: setPadLeft },
+                    ] as const).map(({ label, value, set: setFn }) => (
+                      <div key={label} className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground w-12">{label}</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number" min={0} max={50} value={value}
+                            onChange={(e) => setFn(Math.max(0, Math.min(50, Number(e.target.value))))}
+                            className="w-14 text-center text-xs h-7 rounded border border-border bg-background tabular-nums focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                          <span className="text-[10px] text-muted-foreground">mm</span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Footer */}
-            <div className="border-t p-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full h-7 text-xs text-muted-foreground"
-                onClick={() => { setFontSize(14); setTextAlign('left'); setLineHeight(1.6); setPadTop(15); setPadRight(15); setPadBottom(15); setPadLeft(15) }}
-              >
-                Reset to defaults
-              </Button>
+              <div className="border-t p-2">
+                <Button
+                  variant="ghost" size="sm" className="w-full h-7 text-xs text-muted-foreground"
+                  onClick={() => { setFontSize(14); setLineHeight(1.6); setPadTop(15); setPadRight(15); setPadBottom(15); setPadLeft(15) }}
+                >
+                  Reset to defaults
+                </Button>
+              </div>
             </div>
-          </div>
           </div>
         )}
       </div>
-
-      {/* Revision bar */}
-      <RevisionBar onRevise={handleRevise} />
     </div>
   )
 }

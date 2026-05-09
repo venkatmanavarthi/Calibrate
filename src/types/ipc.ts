@@ -10,8 +10,10 @@ import type {
   ResumeRating,
   PdfExportRequest,
   ExportBundle,
-  CalibrateFile
+  CalibrateFile,
+  EditElementRequest
 } from './models'
+import type { ResumeDocument } from './resume-document'
 
 export type UpdateState =
   | 'idle'
@@ -58,17 +60,19 @@ export interface WindowAPI {
   aiGenerate: (req: GenerateRequest) => Promise<void>
   aiRevise: (req: RevisionRequest) => Promise<void>
   aiRateResume: (req: RateResumeRequest) => Promise<ResumeRating>
+  aiEditElement: (req: EditElementRequest) => Promise<{ resumeDocument: ResumeDocument }>
   aiCancel: (requestId: string) => Promise<{ ok: true }>
   aiListModels: (provider: AIProvider) => Promise<string[]>
 
   // Streaming listeners — return an unlisten function
   onAiChunk: (cb: (payload: { requestId: string; delta: string }) => void) => () => void
-  onAiDone: (cb: (payload: { requestId: string; fullText: string; warnings: HallucinationWarning[] }) => void) => () => void
+  onAiDone: (cb: (payload: { requestId: string; fullText: string; warnings: HallucinationWarning[]; resumeDocument?: ResumeDocument }) => void) => () => void
   onAiError: (cb: (payload: { requestId: string; message: string }) => void) => () => void
 
   // PDF
   pdfExport: (req: PdfExportRequest) => Promise<{ filePath: string }>
   pdfChooseDestination: () => Promise<{ filePath: string | null }>
+  pdfEmailExport: (req: PdfExportRequest) => Promise<{ ok: true }>
 
   // Import / Export
   exportData: () => Promise<{ filePath: string | null }>
@@ -106,5 +110,7 @@ export type {
   ResumeRating,
   PdfExportRequest,
   ExportBundle,
-  CalibrateFile
+  CalibrateFile,
+  ResumeDocument,
+  EditElementRequest
 }

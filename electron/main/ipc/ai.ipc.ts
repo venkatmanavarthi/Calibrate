@@ -3,16 +3,19 @@ import { buildProvider } from '../ai/index'
 import { buildGenerationMessages } from '../ai/prompts/generate'
 import { buildRevisionMessages } from '../ai/prompts/revise'
 import { buildRatingMessages } from '../ai/prompts/rate'
+import { buildEditElementMessages } from '../ai/prompts/edit-element'
 import { validateOutput } from '../ai/validator'
+import { resumeDocumentToMarkdown } from '../ai/utils/resume-doc-to-markdown'
 import { getProfile } from '../storage/profiles.store'
 import { getTemplate } from '../storage/templates.store'
 import { loadSettings } from '../storage/settings.store'
-import type { GenerateRequest, RevisionRequest, RateResumeRequest, ResumeRating, AIProvider } from '../../../src/types/models'
+import type { GenerateRequest, RevisionRequest, RateResumeRequest, ResumeRating, AIProvider, EditElementRequest } from '../../../src/types/models'
+import type { ResumeDocument } from '../../../src/types/resume-document'
 
 // AIs frequently wrap their output in ```markdown ... ``` fences despite being told not to.
 // Strip them so the renderer always receives clean markdown.
 function stripCodeFences(text: string): string {
-  return text.replace(/^```(?:markdown|md)?\r?\n?/, '').replace(/\r?\n?```\s*$/, '').trim()
+  return text.replace(/^```\w*\r?\n?/, '').replace(/\r?\n?```\s*$/, '').trim()
 }
 
 const activeControllers = new Map<string, AbortController>()
@@ -41,9 +44,20 @@ export function registerAiIpc(win: BrowserWindow): void {
         (delta) => win.webContents.send('ai:chunk', { requestId: req.requestId, delta })
       )
 
-      const cleanText = stripCodeFences(fullText)
-      const warnings = validateOutput(cleanText, profile)
-      win.webContents.send('ai:done', { requestId: req.requestId, fullText: cleanText, warnings })
+      const cleanJson = stripCodeFences(fullText)
+      let resumeDocument: ResumeDocument | undefined
+      let markdownText: string
+
+      try {
+        resumeDocument = JSON.parse(cleanJson) as ResumeDocument
+        markdownText = resumeDocumentToMarkdown(resumeDocument)
+      } catch {
+        // Fallback: treat raw output as markdown if JSON parsing fails
+        markdownText = cleanJson
+      }
+
+      const warnings = validateOutput(markdownText, profile)
+      win.webContents.send('ai:done', { requestId: req.requestId, fullText: markdownText, warnings, resumeDocument })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err)
       win.webContents.send('ai:error', { requestId: req.requestId, message })
@@ -89,6 +103,29 @@ export function registerAiIpc(win: BrowserWindow): void {
     const raw = await provider.generate(messages, { model: req.model, temperature: 0.1 }, () => {})
     const cleaned = raw.replace(/^```(?:json)?\r?\n?/, '').replace(/\r?\n?```\s*$/, '').trim()
     return JSON.parse(cleaned) as ResumeRating
+  })
+
+  ipcMain.handle('ai:editElement', async (_, req: EditElementRequest): Promise<{ resumeDocument: ResumeDocument }> => {
+    const controller = new AbortController()
+    activeControllers.set(req.requestId, controller)
+
+    try {
+      const settings = await loadSettings()
+      const provider = await buildProvider(req.provider, settings)
+      const messages = buildEditElementMessages(req.resumeDocument, req.target, req.instruction)
+
+      const fullText = await provider.generate(
+        messages,
+        { model: req.model, temperature: 0.3, signal: controller.signal },
+        () => {}
+      )
+
+      const cleanJson = stripCodeFences(fullText)
+      const resumeDocument = JSON.parse(cleanJson) as ResumeDocument
+      return { resumeDocument }
+    } finally {
+      activeControllers.delete(req.requestId)
+    }
   })
 
   ipcMain.handle('ai:cancel', (_, requestId: string) => {

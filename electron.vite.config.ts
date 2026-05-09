@@ -4,7 +4,7 @@ import path from 'path'
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin({ exclude: ['@anthropic-ai/sdk', 'openai', '@google/generative-ai', 'marked'] })],
+    plugins: [externalizeDepsPlugin({ exclude: ['@anthropic-ai/sdk', 'openai', '@google/generative-ai', 'marked', '@react-pdf/renderer'] })],
     build: {
       rollupOptions: {
         input: {

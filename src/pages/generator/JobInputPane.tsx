@@ -27,7 +27,7 @@ export default function JobInputPane({ onGenerate, onCancel }: Props) {
     activeProvider, setProvider,
     activeModel, setModel,
     isGenerating,
-    setGeneratedMarkdown, clearWarnings
+    setResumeDocument, clearWarnings
   } = useGeneratorStore()
 
   useEffect(() => {
@@ -53,7 +53,7 @@ export default function JobInputPane({ onGenerate, onCancel }: Props) {
 
   const handleClear = () => {
     setJobDescription('')
-    setGeneratedMarkdown('')
+    setResumeDocument(null)
     clearWarnings()
   }
 

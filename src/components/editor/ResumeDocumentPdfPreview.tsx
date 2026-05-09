@@ -79,7 +79,7 @@ export default function ResumeDocumentPdfPreview({
           ) : (
             <iframe
               key={instance.url}
-              src={instance.url}
+              src={`${instance.url}#toolbar=0&navpanes=0&scrollbar=0`}
               style={{ width: w, height: h, border: 'none', display: 'block' }}
               title="PDF Preview"
             />

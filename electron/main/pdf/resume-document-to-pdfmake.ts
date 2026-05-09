@@ -46,12 +46,10 @@ function renderSection(section: ResumeDocumentSection, usableWidth: number, styl
     text: section.title.toUpperCase(),
     style: 'sectionHeading',
   })
-  if (section.layout !== 'summary') {
-    blocks.push({
-      canvas: [{ type: 'line', x1: 0, y1: 0, x2: usableWidth, y2: 0, lineWidth: 0.5, lineColor: '#aaaaaa' }],
-      margin: [0, 1, 0, 4],
-    })
-  }
+  blocks.push({
+    canvas: [{ type: 'line', x1: 0, y1: 0, x2: usableWidth, y2: 0, lineWidth: 0.5, lineColor: '#aaaaaa' }],
+    margin: [0, 1, 0, 4],
+  })
 
   if (section.layout === 'summary' && section.text) {
     blocks.push({ text: section.text, style: 'paragraph' })
@@ -125,11 +123,6 @@ export function resumeDocumentToPdfmake(
 
   const contactLine = renderContactLine(contactParts, styles)
   if (contactLine) content.push(contactLine)
-
-  content.push({
-    canvas: [{ type: 'line', x1: 0, y1: 0, x2: usableWidth, y2: 0, lineWidth: 0.75, lineColor: '#555555' }],
-    margin: [0, 4, 0, 6],
-  })
 
   for (const section of doc.sections) {
     content.push(...renderSection(section, usableWidth, styles))

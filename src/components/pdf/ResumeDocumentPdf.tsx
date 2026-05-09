@@ -196,7 +196,7 @@ function Section({ section, styles }: { section: ResumeDocumentSection; styles: 
   return (
     <View style={styles.sectionContainer}>
       <Text style={styles.sectionHeading}>{section.title.toUpperCase()}</Text>
-      {section.layout !== 'summary' && <View style={styles.sectionDivider} />}
+      <View style={styles.sectionDivider} />
 
       {section.layout === 'summary' && section.text && (
         <Text style={styles.summaryText}>{section.text}</Text>
@@ -226,7 +226,6 @@ export function ResumeDocumentPdf({
       <Page size={cfg.pageSize} style={styles.page}>
         <Text style={styles.name}>{doc.contact.name}</Text>
         <ContactLine contact={doc.contact} styles={styles} />
-        <View style={styles.divider} />
         {doc.sections.map((section, i) => (
           <Section key={i} section={section} styles={styles} />
         ))}

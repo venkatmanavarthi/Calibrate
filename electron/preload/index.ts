@@ -30,6 +30,7 @@ const api: WindowAPI = {
   aiGenerate: (req) => ipcRenderer.invoke('ai:generate', req),
   aiRevise: (req) => ipcRenderer.invoke('ai:revise', req),
   aiRateResume: (req) => ipcRenderer.invoke('ai:rateResume', req),
+  aiEditElement: (req) => ipcRenderer.invoke('ai:editElement', req),
   aiCancel: (requestId) => ipcRenderer.invoke('ai:cancel', requestId),
   aiListModels: (provider) => ipcRenderer.invoke('ai:listModels', provider),
 
@@ -53,6 +54,7 @@ const api: WindowAPI = {
   // PDF
   pdfExport: (req) => ipcRenderer.invoke('pdf:export', req),
   pdfChooseDestination: () => ipcRenderer.invoke('pdf:chooseDestination'),
+  pdfEmailExport: (req) => ipcRenderer.invoke('pdf:emailExport', req),
 
   // .calibrate file open
   onTemplateOpenCalibrate: (cb) => {

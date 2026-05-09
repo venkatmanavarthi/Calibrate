@@ -160,6 +160,7 @@ export interface RevisionRequest {
 
 export interface PdfExportRequest {
   markdownContent: string
+  resumeDocument?: import('./resume-document').ResumeDocument
   destFilePath: string
   pageSize: 'Letter' | 'A4'
   marginMm: number
@@ -199,6 +200,15 @@ export interface ResumeRating {
 export interface RateResumeRequest {
   resumeMarkdown: string
   jobDescription: string
+  provider: AIProvider
+  model: string
+}
+
+export interface EditElementRequest {
+  requestId: string
+  resumeDocument: import('./resume-document').ResumeDocument
+  target: import('./resume-document').SelectionTarget
+  instruction?: string
   provider: AIProvider
   model: string
 }

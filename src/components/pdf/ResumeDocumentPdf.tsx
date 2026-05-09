@@ -123,34 +123,40 @@ function makeStyles(cfg: StyleConfig) {
   })
 }
 
-function contactHref(value: string): string {
-  if (value.startsWith('mailto:') || value.includes('@')) {
-    return value.startsWith('mailto:') ? value : `mailto:${value}`
-  }
-  if (value.startsWith('tel:') || /^\+?[\d\s\-().]{7,}$/.test(value)) {
-    return value.startsWith('tel:') ? value : `tel:${value.replace(/\s/g, '')}`
-  }
+function urlHref(value: string): string {
   return /^https?:\/\//i.test(value) ? value : `https://${value}`
 }
 
+function urlDisplay(value: string): string {
+  return value.replace(/^https?:\/\//i, '')
+}
+
+function telHref(value: string): string {
+  return value.startsWith('tel:') ? value : `tel:${value.replace(/\s/g, '')}`
+}
+
 function ContactLine({ contact, styles }: { contact: ResumeDocument['contact']; styles: ReturnType<typeof makeStyles> }) {
-  const parts: string[] = []
-  if (contact.email) parts.push(contact.email)
-  if (contact.phone) parts.push(contact.phone)
-  if (contact.location) parts.push(contact.location)
-  if (contact.linkedin) parts.push(contact.linkedin)
-  if (contact.github) parts.push(contact.github)
-  if (contact.website) parts.push(contact.website)
+  const parts: { value: string; field: string }[] = []
+  if (contact.email) parts.push({ field: 'email', value: contact.email })
+  if (contact.phone) parts.push({ field: 'phone', value: contact.phone })
+  if (contact.location) parts.push({ field: 'location', value: contact.location })
+  if (contact.linkedin) parts.push({ field: 'linkedin', value: contact.linkedin })
+  if (contact.github) parts.push({ field: 'github', value: contact.github })
+  if (contact.website) parts.push({ field: 'website', value: contact.website })
 
   if (!parts.length) return null
 
   return (
     <Text style={styles.contactLine}>
-      {parts.map((p, i) => (
+      {parts.map(({ field, value }, i) => (
         <React.Fragment key={i}>
-          <Link src={contactHref(p)} style={{ color: '#444444', textDecoration: 'none' }}>
-            {p}
-          </Link>
+          {field === 'location' ? (
+            <Text style={{ color: '#444444' }}>{value}</Text>
+          ) : field === 'phone' ? (
+            <Link src={telHref(value)} style={{ color: '#444444', textDecoration: 'none' }}>{value}</Link>
+          ) : (
+            <Link src={field === 'email' ? (value.startsWith('mailto:') ? value : `mailto:${value}`) : urlHref(value)} style={{ color: '#444444', textDecoration: 'none' }}>{field === 'email' ? value : urlDisplay(value)}</Link>
+          )}
           {i < parts.length - 1 && <Text style={styles.contactSeparator}>  |  </Text>}
         </React.Fragment>
       ))}

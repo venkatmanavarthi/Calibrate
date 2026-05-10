@@ -30,7 +30,7 @@ Output ONLY a valid JSON object matching this exact TypeScript shape — no mark
       "right"?: string,    // right-aligned text, e.g. date range "Jan 2020 – Present"
       "subleft"?: string,  // secondary left, e.g. job title or degree
       "subright"?: string, // secondary right, e.g. location
-      "bullets"?: string[],
+      "bullets"?: string[],  // use **bold** to highlight 1 key phrase per bullet (metric, tech, or outcome)
       "body"?: string      // paragraph text if no bullets
     }>
   }>

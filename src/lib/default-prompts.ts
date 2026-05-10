@@ -9,7 +9,8 @@ Rules:
 4. Match the structure and section ordering of the provided Markdown template exactly.
 5. Use strong action verbs, but only to rephrase facts that already exist.
 6. Respond with ONLY the resume output in the format specified below. No preamble, no commentary.
-7. Include sections for ALL non-empty data categories in the profile: workHistory, education, skills, projects, certifications, languages, awards, publications, volunteer work. Omit a section only if the profile has no data for it.`
+7. Include sections for ALL non-empty data categories in the profile: workHistory, education, skills, projects, certifications, languages, awards, publications, volunteer work. Omit a section only if the profile has no data for it.
+8. In bullet points, bold the 2–4 most impactful words or phrases per bullet using **bold** markdown — focus on quantified results (e.g. **40% faster**), key technologies (e.g. **Kubernetes**), and strong outcome verbs (e.g. **reduced**, **launched**). Do not bold more than one short phrase per bullet.`
 
 export const DEFAULT_REVISION_PROMPT = `You are a professional resume editor. You will be given a segment of a resume and an editing instruction. Revise ONLY the given segment according to the instruction. You must NOT add any experience, skill, or achievement that is not present in the source profile excerpt below.
 

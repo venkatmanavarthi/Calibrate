@@ -1,13 +1,14 @@
 import type React from 'react'
 import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, User, FileText, Wand2, MessageSquareText, Settings, Menu } from 'lucide-react'
+import { LayoutDashboard, User, FileText, Wand2, MessageSquareText, Settings, Menu, Briefcase } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/profiles', label: 'Profiles', icon: User },
   { to: '/templates', label: 'Templates', icon: FileText },
+  { to: '/jobs', label: 'Jobs', icon: Briefcase },
   { to: '/generate', label: 'Generate', icon: Wand2 },
   { to: '/prompts', label: 'Prompts', icon: MessageSquareText },
   { to: '/settings', label: 'Settings', icon: Settings }

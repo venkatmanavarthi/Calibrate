@@ -11,7 +11,10 @@ import type {
   PdfExportRequest,
   ExportBundle,
   CalibrateFile,
-  EditElementRequest
+  EditElementRequest,
+  TrackedCompany,
+  NormalizedJob,
+  JobRefreshResult
 } from './models'
 import type { ResumeDocument } from './resume-document'
 
@@ -82,6 +85,14 @@ export interface WindowAPI {
   onTemplateOpenCalibrate: (cb: (template: ResumeTemplate) => void) => () => void
   onPromptsOpenCalibrate: (cb: (prompts: { generation: string; revision: string }) => void) => () => void
 
+  // Jobs
+  jobsListCompanies: () => Promise<TrackedCompany[]>
+  jobsSaveCompany: (company: TrackedCompany) => Promise<{ ok: true }>
+  jobsDeleteCompany: (id: string) => Promise<{ ok: true }>
+  jobsListJobs: () => Promise<NormalizedJob[]>
+  jobsRefreshCompany: (id: string) => Promise<JobRefreshResult>
+  jobsRefreshAll: () => Promise<JobRefreshResult[]>
+
   // Updates
   updatesCheck: () => Promise<void>
   updatesDownload: () => Promise<void>
@@ -112,5 +123,8 @@ export type {
   ExportBundle,
   CalibrateFile,
   ResumeDocument,
-  EditElementRequest
+  EditElementRequest,
+  TrackedCompany,
+  NormalizedJob,
+  JobRefreshResult
 }

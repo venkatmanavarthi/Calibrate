@@ -205,6 +205,49 @@ export interface RateResumeRequest {
   model: string
 }
 
+export type JobAtsSource = 'greenhouse' | 'lever' | 'ashby'
+
+export interface TrackedCompany {
+  id: string
+  name: string
+  source: JobAtsSource
+  slug: string
+  addedAt: string
+}
+
+export interface NormalizedJob {
+  id: string
+  source: JobAtsSource
+  externalId: string
+  company: string
+  companyId: string
+  title: string
+  location: string
+  remote: boolean
+  department?: string
+  employmentType?: string
+  descriptionHtml: string
+  applyUrl: string
+  postedAt: string
+  updatedAt: string
+  firstSeenAt: string
+  lastSeenAt: string
+}
+
+export interface JobQuery {
+  keywords?: string
+  location?: string
+  remoteOnly?: boolean
+  postedWithinDays?: number
+}
+
+export interface JobRefreshResult {
+  companyId: string
+  fetched: number
+  added: number
+  errors?: string
+}
+
 export interface EditElementRequest {
   requestId: string
   resumeDocument: import('./resume-document').ResumeDocument

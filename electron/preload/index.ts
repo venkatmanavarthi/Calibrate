@@ -72,6 +72,14 @@ const api: WindowAPI = {
   exportData: () => ipcRenderer.invoke('export:data'),
   importData: () => ipcRenderer.invoke('import:data'),
 
+  // Jobs
+  jobsListCompanies: () => ipcRenderer.invoke('jobs:listCompanies'),
+  jobsSaveCompany: (c) => ipcRenderer.invoke('jobs:saveCompany', c),
+  jobsDeleteCompany: (id) => ipcRenderer.invoke('jobs:deleteCompany', id),
+  jobsListJobs: () => ipcRenderer.invoke('jobs:listJobs'),
+  jobsRefreshCompany: (id) => ipcRenderer.invoke('jobs:refreshCompany', id),
+  jobsRefreshAll: () => ipcRenderer.invoke('jobs:refreshAll'),
+
   // Updates
   updatesCheck: () => ipcRenderer.invoke('updates:check'),
   updatesDownload: () => ipcRenderer.invoke('updates:download'),

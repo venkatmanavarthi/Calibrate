@@ -1,6 +1,7 @@
 import React from 'react'
 import {
   Document,
+  Font,
   Page,
   Text,
   View,
@@ -9,10 +10,13 @@ import {
 } from '@react-pdf/renderer'
 import type { ResumeDocument, ResumeDocumentSection, ResumeDocumentEntry } from '../../types/resume-document'
 
+Font.registerHyphenationCallback(word => [word])
+
 interface StyleConfig {
   font: string
   fontSize: number
   lineHeight: number
+  textAlign?: 'left' | 'justify'
   pageSize: 'LETTER' | 'A4'
   marginPt: number
   paddingTopPt: number
@@ -26,6 +30,7 @@ interface StyleConfig {
 
 function makeStyles(cfg: StyleConfig) {
   const { fontSize: fs, lineHeight: lh } = cfg
+  const align = cfg.textAlign ?? 'left'
   const primary = cfg.primaryColor ?? '#111111'
   const meta = cfg.metaColor ?? '#555555'
   const accent = cfg.accentColor ?? '#aaaaaa'
@@ -45,6 +50,7 @@ function makeStyles(cfg: StyleConfig) {
       fontFamily: cfg.font,
       fontWeight: 'bold',
       textAlign: 'center',
+      lineHeight: 1.1,
       marginBottom: 3,
     },
     contactLine: {
@@ -103,6 +109,7 @@ function makeStyles(cfg: StyleConfig) {
     entryBody: {
       fontSize: fs,
       lineHeight: lh,
+      textAlign: align,
       marginTop: 2,
     },
     bulletRow: {
@@ -118,15 +125,18 @@ function makeStyles(cfg: StyleConfig) {
       flex: 1,
       fontSize: fs,
       lineHeight: lh,
+      textAlign: align,
     },
     skillsText: {
       fontSize: fs,
       lineHeight: lh,
+      textAlign: align,
       marginTop: 2,
     },
     summaryText: {
       fontSize: fs,
       lineHeight: lh,
+      textAlign: align,
       marginTop: 4,
     },
   })
@@ -171,21 +181,24 @@ function ContactLine({ contact, styles }: { contact: ResumeDocument['contact']; 
 
   if (!parts.length) return null
 
+  const itemStyle = { color: '#444444', fontSize: styles.contactLine.fontSize, textDecoration: 'none' }
+  const sepStyle = { color: '#888888', fontSize: styles.contactLine.fontSize, marginLeft: 5, marginRight: 5 }
+
   return (
-    <Text style={styles.contactLine}>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginBottom: 3 }}>
       {parts.map(({ field, value }, i) => (
         <React.Fragment key={i}>
           {field === 'location' ? (
-            <Text style={{ color: '#444444' }}>{value}</Text>
+            <Text style={itemStyle}>{value}</Text>
           ) : field === 'phone' ? (
-            <Link src={telHref(value)} style={{ color: '#444444', textDecoration: 'none' }}>{value}</Link>
+            <Link src={telHref(value)} style={itemStyle}>{value}</Link>
           ) : (
-            <Link src={field === 'email' ? (value.startsWith('mailto:') ? value : `mailto:${value}`) : urlHref(value)} style={{ color: '#444444', textDecoration: 'none' }}>{field === 'email' ? value : urlDisplay(value)}</Link>
+            <Link src={field === 'email' ? (value.startsWith('mailto:') ? value : `mailto:${value}`) : urlHref(value)} style={itemStyle}>{field === 'email' ? value : urlDisplay(value)}</Link>
           )}
-          {i < parts.length - 1 && <Text style={styles.contactSeparator}>  |  </Text>}
+          {i < parts.length - 1 && <Text style={sepStyle}>{'|'}</Text>}
         </React.Fragment>
       ))}
-    </Text>
+    </View>
   )
 }
 

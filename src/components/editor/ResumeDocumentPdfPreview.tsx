@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { usePDF } from '@react-pdf/renderer'
 import { ResumeDocumentPdf } from '@/components/pdf/ResumeDocumentPdf'
 import type { ResumeDocument } from '@/types/resume-document'
@@ -9,6 +10,7 @@ interface Props {
   marginMm: number
   fontSize?: number
   lineHeight?: number
+  textAlign?: 'left' | 'justify'
   paddingTopMm?: number
   paddingRightMm?: number
   paddingBottomMm?: number
@@ -34,6 +36,7 @@ function mmToPt(mm: number): number {
 export default function ResumeDocumentPdfPreview({
   doc, font, pageSize, marginMm,
   fontSize = 11, lineHeight = 1.4,
+  textAlign = 'left',
   paddingTopMm, paddingRightMm, paddingBottomMm, paddingLeftMm,
   zoom = 1,
 }: Props) {
@@ -42,6 +45,7 @@ export default function ResumeDocumentPdfPreview({
     font: FONT_MAP[font] ?? 'Times-Roman',
     fontSize,
     lineHeight,
+    textAlign,
     pageSize: (pageSize === 'Letter' ? 'LETTER' : 'A4') as 'LETTER' | 'A4',
     marginPt,
     paddingTopPt: paddingTopMm !== undefined ? mmToPt(paddingTopMm) : marginPt,
@@ -50,7 +54,14 @@ export default function ResumeDocumentPdfPreview({
     paddingLeftPt: paddingLeftMm !== undefined ? mmToPt(paddingLeftMm) : marginPt,
   }
 
-  const [instance] = usePDF({ document: <ResumeDocumentPdf doc={doc} cfg={cfg} /> })
+  const [instance, updateInstance] = usePDF({ document: <ResumeDocumentPdf doc={doc} cfg={cfg} /> })
+
+  useEffect(() => {
+    updateInstance(<ResumeDocumentPdf doc={doc} cfg={cfg} />)
+  // cfg is a new object each render, so stringify to compare actual values
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc, font, pageSize, marginMm, fontSize, lineHeight, textAlign,
+      paddingTopMm, paddingRightMm, paddingBottomMm, paddingLeftMm])
 
   const { w, h } = PAGE_PX[pageSize]
 

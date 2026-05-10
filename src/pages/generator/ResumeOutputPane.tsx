@@ -41,6 +41,7 @@ export default function ResumeOutputPane() {
 
   const [fontSize, setFontSize] = useState(14)
   const [lineHeight, setLineHeight] = useState(1.6)
+  const [textAlign, setTextAlign] = useState<'left' | 'justify'>('left')
   const [padTop, setPadTop] = useState(15)
   const [padRight, setPadRight] = useState(15)
   const [padBottom, setPadBottom] = useState(15)
@@ -401,6 +402,7 @@ export default function ResumeOutputPane() {
               marginMm={settings?.pdfMarginMm ?? 15}
               fontSize={Math.round(fontSize / 1.333)}
               lineHeight={lineHeight}
+              textAlign={textAlign}
               paddingTopMm={padTop}
               paddingRightMm={padRight}
               paddingBottomMm={padBottom}
@@ -502,6 +504,21 @@ export default function ResumeOutputPane() {
                 </div>
 
                 <div className="flex flex-col gap-2">
+                  <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Text Alignment</span>
+                  <div className="flex gap-1">
+                    {(['left', 'justify'] as const).map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setTextAlign(v)}
+                        className={`flex-1 text-xs h-7 rounded border transition-colors ${textAlign === v ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border text-muted-foreground hover:border-primary/50'}`}
+                      >
+                        {v === 'left' ? 'Left' : 'Justify'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
                   <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Colors</span>
                   <div className="flex flex-col gap-2">
                     {([
@@ -555,7 +572,7 @@ export default function ResumeOutputPane() {
               <div className="border-t p-2">
                 <Button
                   variant="ghost" size="sm" className="w-full h-7 text-xs text-muted-foreground"
-                  onClick={() => { setFontSize(14); setLineHeight(1.6); setPadTop(15); setPadRight(15); setPadBottom(15); setPadLeft(15); if (resumeDocument) setResumeDocument({ ...resumeDocument, metadata: { ...resumeDocument.metadata, primaryColor: undefined, metaColor: undefined, accentColor: undefined } }) }}
+                  onClick={() => { setFontSize(14); setLineHeight(1.6); setTextAlign('left'); setPadTop(15); setPadRight(15); setPadBottom(15); setPadLeft(15); if (resumeDocument) setResumeDocument({ ...resumeDocument, metadata: { ...resumeDocument.metadata, primaryColor: undefined, metaColor: undefined, accentColor: undefined } }) }}
                 >
                   Reset to defaults
                 </Button>

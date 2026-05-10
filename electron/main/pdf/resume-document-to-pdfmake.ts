@@ -13,14 +13,14 @@ interface FontStyles {
 function contactLinkRun(value: string): PdfContent {
   if (value.startsWith('mailto:') || value.includes('@')) {
     const href = value.startsWith('mailto:') ? value : `mailto:${value}`
-    return { text: value.replace(/^mailto:/, ''), link: href, color: '#111111', decoration: undefined }
+    return { text: value.replace(/^mailto:/, ''), link: href, color: '#111111', decoration: undefined, noWrap: true }
   }
   if (value.startsWith('tel:') || /^\+?[\d\s\-().]{7,}$/.test(value)) {
     const href = value.startsWith('tel:') ? value : `tel:${value.replace(/\s/g, '')}`
-    return { text: value.replace(/^tel:/, ''), link: href, color: '#111111', decoration: undefined }
+    return { text: value.replace(/^tel:/, ''), link: href, color: '#111111', decoration: undefined, noWrap: true }
   }
   const href = /^https?:\/\//i.test(value) ? value : `https://${value}`
-  return { text: value, link: href, color: '#111111', decoration: undefined }
+  return { text: value, link: href, color: '#111111', decoration: undefined, noWrap: true }
 }
 
 function renderContactLine(parts: string[], _styles: FontStyles): PdfContent {

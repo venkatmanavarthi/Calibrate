@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { generateId } from '@/lib/utils'
 import { useGeneratorStore } from '@/stores/generator.store'
+import { resumeDocumentToMarkdown } from '@/lib/resume-doc-to-markdown'
 import JobInputPane from './JobInputPane'
 import ResumeOutputPane from './ResumeOutputPane'
 
@@ -9,7 +10,7 @@ export default function GeneratorPage() {
     selectedProfileId, selectedTemplateId, jobDescription,
     activeProvider, activeModel,
     setGenerating, setResumeDocument, setWarnings, clearWarnings,
-    currentRequestId, setViewMode,
+    currentRequestId, setViewMode, setRating, setIsRating,
   } = useGeneratorStore()
   const [leftWidth, setLeftWidth] = useState(380)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -47,7 +48,21 @@ export default function GeneratorPage() {
         setResumeDocument(resumeDocument ?? null)
         setGenerating(false, null)
         setWarnings(warnings)
-        if (resumeDocument) setViewMode('structured')
+        if (resumeDocument) {
+          setViewMode('structured')
+          // Auto-trigger rating if job description is available
+          const { jobDescription: jd, activeProvider: provider, activeModel: model } = useGeneratorStore.getState()
+          if (jd) {
+            setIsRating(true)
+            setRating(null)
+            window.api.aiRateResume({
+              resumeMarkdown: resumeDocumentToMarkdown(resumeDocument),
+              jobDescription: jd,
+              provider,
+              model,
+            }).then((r) => setRating(r)).catch(() => {/* rating is best-effort */}).finally(() => setIsRating(false))
+          }
+        }
       }
     })
 

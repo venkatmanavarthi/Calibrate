@@ -94,6 +94,7 @@ export interface ResumeTemplate {
   createdAt: string
   updatedAt: string
   defaultStyleHints?: string
+  preset?: boolean
 }
 
 export type AIProvider = 'anthropic' | 'openai' | 'gemini' | 'groq' | 'lmstudio'

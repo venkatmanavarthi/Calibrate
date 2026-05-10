@@ -34,7 +34,21 @@ Output ONLY a valid JSON object matching this exact TypeScript shape — no mark
       "body"?: string      // paragraph text if no bullets
     }>
   }>
-}`
+}
+
+Section layout guidance by content type:
+- Experience: layout "entries" — left=company, subleft=job title, right=date range, subright=location, bullets=achievements
+- Education: layout "entries" — left=institution, subleft=degree + field, right=graduation date, subright=location
+- Projects: layout "entries" — left=project name, right=date range (if available), subleft=technologies used, bullets=key achievements/features
+- Certifications: layout "entries" — left=certification name, subleft=issuing organization, right=issue date (and expiry if present)
+- Awards & Honors: layout "entries" — left=award name, subleft=issuing organization, right=date
+- Publications: layout "entries" — left=publication title, subleft=journal/venue, right=date, body=brief description if needed
+- Volunteer: layout "entries" — left=organization, subleft=role, right=date range, bullets=contributions
+- Skills: layout "skills" — flat array of skill strings (group by category if appropriate, e.g. "Python · SQL · Spark")
+- Languages: layout "skills" — each language with proficiency, e.g. "English (Native) · Spanish (Conversational)"
+- Summary/Objective: layout "summary" — single paragraph
+
+IMPORTANT: Include a section for each profile data category that has entries AND is relevant to the job description. If the profile has projects, certifications, languages, awards, publications, or volunteer work, include those sections. Omit sections only if the profile has no data for that category.`
 
 export function buildGenerationMessages(
   profile: ExperienceProfile,

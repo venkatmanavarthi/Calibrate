@@ -9,6 +9,8 @@ interface Props {
   provider: AIProvider
   model: string
   onClose: () => void
+  initialRating?: ResumeRating | null
+  initialLoading?: boolean
 }
 
 function ScoreRing({ score }: { score: number }) {
@@ -79,10 +81,19 @@ function Collapsible({ title, items, emptyMsg }: { title: string; items: string[
   )
 }
 
-export default function ResumeRatingPanel({ resumeMarkdown, jobDescription, provider, model, onClose }: Props) {
-  const [rating, setRating] = useState<ResumeRating | null>(null)
-  const [loading, setLoading] = useState(false)
+export default function ResumeRatingPanel({ resumeMarkdown, jobDescription, provider, model, onClose, initialRating, initialLoading }: Props) {
+  const [rating, setRating] = useState<ResumeRating | null>(initialRating ?? null)
+  const [loading, setLoading] = useState(initialLoading ?? false)
   const [error, setError] = useState<string | null>(null)
+
+  // Sync when parent provides auto-computed rating
+  useEffect(() => {
+    if (initialRating !== undefined) setRating(initialRating)
+  }, [initialRating])
+
+  useEffect(() => {
+    if (initialLoading !== undefined) setLoading(initialLoading)
+  }, [initialLoading])
 
   const runRating = useCallback(async () => {
     setLoading(true)
@@ -97,8 +108,11 @@ export default function ResumeRatingPanel({ resumeMarkdown, jobDescription, prov
     }
   }, [resumeMarkdown, jobDescription, provider, model])
 
+  // Only auto-fetch if no initialRating was provided by parent
   useEffect(() => {
-    runRating()
+    if (initialRating === undefined && !initialLoading) {
+      runRating()
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (

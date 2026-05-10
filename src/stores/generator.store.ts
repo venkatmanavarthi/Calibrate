@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { AIProvider, HallucinationWarning } from '@/types/models'
+import type { AIProvider, HallucinationWarning, ResumeRating } from '@/types/models'
 import type { ResumeDocument } from '@/types/resume-document'
 
 interface GeneratorState {
@@ -14,6 +14,9 @@ interface GeneratorState {
   isGenerating: boolean
   currentRequestId: string | null
 
+  rating: ResumeRating | null
+  isRating: boolean
+
   viewMode: 'pdf' | 'structured'
 
   setProfile: (id: string) => void
@@ -26,6 +29,9 @@ interface GeneratorState {
   setGenerating: (v: boolean, requestId?: string | null) => void
   setViewMode: (m: 'pdf' | 'structured') => void
   clearWarnings: () => void
+  reorderSections: (fromIndex: number, toIndex: number) => void
+  setRating: (r: ResumeRating | null) => void
+  setIsRating: (v: boolean) => void
 }
 
 export const useGeneratorStore = create<GeneratorState>((set) => ({
@@ -40,6 +46,9 @@ export const useGeneratorStore = create<GeneratorState>((set) => ({
   isGenerating: false,
   currentRequestId: null,
 
+  rating: null,
+  isRating: false,
+
   viewMode: 'pdf',
 
   setProfile: (id) => set({ selectedProfileId: id }),
@@ -52,4 +61,13 @@ export const useGeneratorStore = create<GeneratorState>((set) => ({
   setGenerating: (v, requestId = null) => set({ isGenerating: v, currentRequestId: requestId }),
   setViewMode: (m) => set({ viewMode: m }),
   clearWarnings: () => set({ warnings: [] }),
+  reorderSections: (fromIndex, toIndex) => set((state) => {
+    if (!state.resumeDocument) return state
+    const sections = [...state.resumeDocument.sections]
+    const [moved] = sections.splice(fromIndex, 1)
+    sections.splice(toIndex, 0, moved)
+    return { resumeDocument: { ...state.resumeDocument, sections } }
+  }),
+  setRating: (r) => set({ rating: r }),
+  setIsRating: (v) => set({ isRating: v }),
 }))

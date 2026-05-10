@@ -9,7 +9,9 @@ export function registerTemplatesIpc(): void {
   ipcMain.handle('templates:save', (_, template: ResumeTemplate) => {
     return saveTemplate(template).then(() => ({ ok: true as const }))
   })
-  ipcMain.handle('templates:delete', (_, id: string) => {
+  ipcMain.handle('templates:delete', async (_, id: string) => {
+    const template = await getTemplate(id)
+    if (template?.preset) throw new Error('Cannot delete a preset template')
     return deleteTemplate(id).then(() => ({ ok: true as const }))
   })
   ipcMain.handle('templates:exportCalibrate', async (_, id: string) => {

@@ -19,10 +19,16 @@ interface StyleConfig {
   paddingRightPt: number
   paddingBottomPt: number
   paddingLeftPt: number
+  primaryColor?: string
+  metaColor?: string
+  accentColor?: string
 }
 
 function makeStyles(cfg: StyleConfig) {
   const { fontSize: fs, lineHeight: lh } = cfg
+  const primary = cfg.primaryColor ?? '#111111'
+  const meta = cfg.metaColor ?? '#555555'
+  const accent = cfg.accentColor ?? '#aaaaaa'
   return StyleSheet.create({
     page: {
       fontFamily: cfg.font,
@@ -32,11 +38,12 @@ function makeStyles(cfg: StyleConfig) {
       paddingRight: cfg.paddingRightPt,
       paddingBottom: cfg.paddingBottomPt,
       paddingLeft: cfg.paddingLeftPt,
-      color: '#111111',
+      color: primary,
     },
     name: {
       fontSize: Math.round(fs * 1.8),
       fontFamily: cfg.font,
+      fontWeight: 'bold',
       textAlign: 'center',
       marginBottom: 3,
     },
@@ -51,7 +58,7 @@ function makeStyles(cfg: StyleConfig) {
     },
     divider: {
       borderBottomWidth: 0.75,
-      borderBottomColor: '#555555',
+      borderBottomColor: meta,
       marginTop: 4,
       marginBottom: 6,
     },
@@ -61,11 +68,12 @@ function makeStyles(cfg: StyleConfig) {
     sectionHeading: {
       fontSize: fs,
       fontFamily: cfg.font,
+      fontWeight: 'bold',
       marginBottom: 1,
     },
     sectionDivider: {
       borderBottomWidth: 0.5,
-      borderBottomColor: '#aaaaaa',
+      borderBottomColor: accent,
       marginBottom: 4,
     },
     entryRow: {
@@ -75,11 +83,12 @@ function makeStyles(cfg: StyleConfig) {
     },
     entryTitle: {
       fontFamily: cfg.font,
+      fontWeight: 'bold',
       fontSize: fs,
     },
     entryMeta: {
       fontSize: Math.round(fs * 0.9),
-      color: '#555555',
+      color: meta,
     },
     entrySubRow: {
       flexDirection: 'row',
@@ -120,6 +129,22 @@ function makeStyles(cfg: StyleConfig) {
       lineHeight: lh,
       marginTop: 4,
     },
+  })
+}
+
+// Parses **bold** markdown and returns react-pdf Text fragments
+function renderInlineMarkdown(text: string, baseStyle: object, boldFont: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g)
+  if (parts.length === 1) return text
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <Text key={i} style={{ ...baseStyle, fontFamily: boldFont, fontWeight: 'bold' }}>
+          {part.slice(2, -2)}
+        </Text>
+      )
+    }
+    return <Text key={i} style={baseStyle}>{part}</Text>
   })
 }
 
@@ -164,16 +189,16 @@ function ContactLine({ contact, styles }: { contact: ResumeDocument['contact']; 
   )
 }
 
-function Bullet({ text, styles }: { text: string; styles: ReturnType<typeof makeStyles> }) {
+function Bullet({ text, styles, font }: { text: string; styles: ReturnType<typeof makeStyles>; font: string }) {
   return (
     <View style={styles.bulletRow}>
       <Text style={styles.bulletDot}>•</Text>
-      <Text style={styles.bulletText}>{text}</Text>
+      <Text style={styles.bulletText}>{renderInlineMarkdown(text, styles.bulletText, font)}</Text>
     </View>
   )
 }
 
-function Entry({ entry, styles }: { entry: ResumeDocumentEntry; styles: ReturnType<typeof makeStyles> }) {
+function Entry({ entry, styles, font }: { entry: ResumeDocumentEntry; styles: ReturnType<typeof makeStyles>; font: string }) {
   return (
     <View>
       <View style={styles.entryRow}>
@@ -186,28 +211,34 @@ function Entry({ entry, styles }: { entry: ResumeDocumentEntry; styles: ReturnTy
           {entry.subright && <Text style={styles.entryMeta}>{entry.subright}</Text>}
         </View>
       )}
-      {entry.body && <Text style={styles.entryBody}>{entry.body}</Text>}
-      {entry.bullets?.map((b, i) => <Bullet key={i} text={b} styles={styles} />)}
+      {entry.body && <Text style={styles.entryBody}>{renderInlineMarkdown(entry.body, styles.entryBody, font)}</Text>}
+      {entry.bullets?.map((b, i) => <Bullet key={i} text={b} styles={styles} font={font} />)}
     </View>
   )
 }
 
-function Section({ section, styles }: { section: ResumeDocumentSection; styles: ReturnType<typeof makeStyles> }) {
+function Section({ section, styles, font }: { section: ResumeDocumentSection; styles: ReturnType<typeof makeStyles>; font: string }) {
   return (
     <View style={styles.sectionContainer}>
       <Text style={styles.sectionHeading}>{section.title.toUpperCase()}</Text>
       <View style={styles.sectionDivider} />
 
       {section.layout === 'summary' && section.text && (
-        <Text style={styles.summaryText}>{section.text}</Text>
+        <Text style={styles.summaryText}>{renderInlineMarkdown(section.text, styles.summaryText, font)}</Text>
       )}
 
       {section.layout === 'skills' && section.skills?.length && (
-        <Text style={styles.skillsText}>{section.skills.join('  ·  ')}</Text>
+        section.skills.some(s => s.includes('**'))
+          ? section.skills.map((skill, i) => (
+              <Text key={i} style={styles.skillsText}>
+                {renderInlineMarkdown(skill, styles.skillsText, font)}
+              </Text>
+            ))
+          : <Text style={styles.skillsText}>{section.skills.join('  ·  ')}</Text>
       )}
 
       {section.layout === 'entries' && section.entries?.map((entry, i) => (
-        <Entry key={i} entry={entry} styles={styles} />
+        <Entry key={i} entry={entry} styles={styles} font={font} />
       ))}
     </View>
   )
@@ -220,14 +251,20 @@ export function ResumeDocumentPdf({
   doc: ResumeDocument
   cfg: StyleConfig
 }) {
-  const styles = makeStyles(cfg)
+  const mergedCfg: StyleConfig = {
+    ...cfg,
+    primaryColor: doc.metadata?.primaryColor ?? cfg.primaryColor,
+    metaColor: doc.metadata?.metaColor ?? cfg.metaColor,
+    accentColor: doc.metadata?.accentColor ?? cfg.accentColor,
+  }
+  const styles = makeStyles(mergedCfg)
   return (
     <Document>
       <Page size={cfg.pageSize} style={styles.page}>
         <Text style={styles.name}>{doc.contact.name}</Text>
         <ContactLine contact={doc.contact} styles={styles} />
-        {doc.sections.map((section, i) => (
-          <Section key={i} section={section} styles={styles} />
+        {doc.sections.filter(s => !s.hidden).map((section, i) => (
+          <Section key={i} section={section} styles={styles} font={mergedCfg.font} />
         ))}
       </Page>
     </Document>

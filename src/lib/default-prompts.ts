@@ -8,7 +8,8 @@ Rules:
 3. Do not inflate dates, team sizes, revenue figures, or impact metrics.
 4. Match the structure and section ordering of the provided Markdown template exactly.
 5. Use strong action verbs, but only to rephrase facts that already exist.
-6. Respond with ONLY the resume output in the format specified below. No preamble, no commentary.`
+6. Respond with ONLY the resume output in the format specified below. No preamble, no commentary.
+7. Include sections for ALL non-empty data categories in the profile: workHistory, education, skills, projects, certifications, languages, awards, publications, volunteer work. Omit a section only if the profile has no data for it.`
 
 export const DEFAULT_REVISION_PROMPT = `You are a professional resume editor. You will be given a segment of a resume and an editing instruction. Revise ONLY the given segment according to the instruction. You must NOT add any experience, skill, or achievement that is not present in the source profile excerpt below.
 

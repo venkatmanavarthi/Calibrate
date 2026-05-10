@@ -25,11 +25,22 @@ export interface ResumeDocumentSection {
   entries?: ResumeDocumentEntry[]
   text?: string
   skills?: string[]
+  hidden?: boolean
+}
+
+export interface ResumeDocumentMetadata {
+  primaryColor?: string
+  metaColor?: string
+  accentColor?: string
+  font?: string
+  fontSize?: number
+  lineHeight?: number
 }
 
 export interface ResumeDocument {
   contact: ResumeDocumentContact
   sections: ResumeDocumentSection[]
+  metadata?: ResumeDocumentMetadata
 }
 
 export type SelectionTarget =

@@ -22,6 +22,7 @@ export default function ResumeOutputPane() {
     viewMode, setViewMode,
     jobDescription,
     activeProvider, activeModel,
+    rating, isRating,
   } = useGeneratorStore()
   const { settings, save } = useSettingsStore()
   const [exporting, setExporting] = useState(false)
@@ -150,6 +151,47 @@ export default function ResumeOutputPane() {
     setResumeDocument(doc)
     setSelectedTarget(null)
     setSelectedRect(null)
+  }, [resumeDocument, setResumeDocument])
+
+  const handleAddSection = useCallback((title: string, layout: import('@/types/resume-document').ResumeSectionLayout) => {
+    if (!resumeDocument) return
+    const section: import('@/types/resume-document').ResumeDocumentSection = {
+      title,
+      layout,
+      ...(layout === 'entries' ? { entries: [] } : layout === 'skills' ? { skills: [] } : { text: '' }),
+    }
+    setResumeDocument({ ...resumeDocument, sections: [...resumeDocument.sections, section] })
+  }, [resumeDocument, setResumeDocument])
+
+  const handleAddEntry = useCallback((sectionIndex: number) => {
+    if (!resumeDocument) return
+    const doc = JSON.parse(JSON.stringify(resumeDocument)) as typeof resumeDocument
+    const section = doc.sections[sectionIndex]
+    if (!section.entries) section.entries = []
+    section.entries.push({ left: 'New Entry', bullets: [] })
+    setResumeDocument(doc)
+  }, [resumeDocument, setResumeDocument])
+
+  const handleAddBullet = useCallback((sectionIndex: number, entryIndex: number) => {
+    if (!resumeDocument) return
+    const doc = JSON.parse(JSON.stringify(resumeDocument)) as typeof resumeDocument
+    const entry = doc.sections[sectionIndex].entries?.[entryIndex]
+    if (!entry) return
+    if (!entry.bullets) entry.bullets = []
+    entry.bullets.push('New bullet point')
+    setResumeDocument(doc)
+  }, [resumeDocument, setResumeDocument])
+
+  const handleUpdateMetadata = useCallback((patch: Partial<import('@/types/resume-document').ResumeDocumentMetadata>) => {
+    if (!resumeDocument) return
+    setResumeDocument({ ...resumeDocument, metadata: { ...resumeDocument.metadata, ...patch } })
+  }, [resumeDocument, setResumeDocument])
+
+  const handleToggleSection = useCallback((sectionIndex: number) => {
+    if (!resumeDocument) return
+    const doc = JSON.parse(JSON.stringify(resumeDocument)) as typeof resumeDocument
+    doc.sections[sectionIndex].hidden = !doc.sections[sectionIndex].hidden
+    setResumeDocument(doc)
   }, [resumeDocument, setResumeDocument])
 
   const handleEditElement = useCallback(async (target: SelectionTarget, instruction?: string) => {
@@ -297,12 +339,17 @@ export default function ResumeOutputPane() {
             <Button
               size="sm"
               variant={showRatingPanel ? 'secondary' : 'ghost'}
-              className="h-7 w-7 p-0"
+              className="h-7 w-7 p-0 relative"
               onClick={() => { setShowRatingPanel((v) => !v); setShowStylePanel(false) }}
-              title="Rate Resume"
+              title={isRating ? 'Scoring resume…' : rating ? `Score: ${rating.overallScore}/100` : 'Rate Resume'}
               disabled={!resumeDocument || !jobDescription}
             >
-              <BarChart2 size={13} />
+              <BarChart2 size={13} className={isRating ? 'animate-pulse' : ''} />
+              {rating && !isRating && (
+                <span className="absolute -top-1 -right-1 text-[8px] font-bold bg-primary text-primary-foreground rounded-full w-3.5 h-3.5 flex items-center justify-center leading-none">
+                  {rating.overallScore}
+                </span>
+              )}
             </Button>
           </div>
         )}
@@ -328,6 +375,12 @@ export default function ResumeOutputPane() {
                   setSelectedTarget(target)
                   setSelectedRect(target ? rect : null)
                 }}
+                onToggleSection={handleToggleSection}
+                onReorderSections={(from, to) => useGeneratorStore.getState().reorderSections(from, to)}
+                onAddSection={handleAddSection}
+                onAddEntry={handleAddEntry}
+                onAddBullet={handleAddBullet}
+                missingKeywords={rating?.missingKeywords}
               />
               {selectedTarget && selectedRect && (
                 <SelectionToolbar
@@ -387,6 +440,8 @@ export default function ResumeOutputPane() {
                 provider={activeProvider}
                 model={activeModel}
                 onClose={() => setShowRatingPanel(false)}
+                initialRating={rating}
+                initialLoading={isRating}
               />
             </div>
           </div>
@@ -447,6 +502,32 @@ export default function ResumeOutputPane() {
                 </div>
 
                 <div className="flex flex-col gap-2">
+                  <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Colors</span>
+                  <div className="flex flex-col gap-2">
+                    {([
+                      { label: 'Text', key: 'primaryColor', default: '#111111' },
+                      { label: 'Meta / Dates', key: 'metaColor', default: '#555555' },
+                      { label: 'Dividers', key: 'accentColor', default: '#aaaaaa' },
+                    ] as const).map(({ label, key, default: def }) => (
+                      <div key={key} className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">{label}</span>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="color"
+                            value={resumeDocument?.metadata?.[key] ?? def}
+                            onChange={(e) => handleUpdateMetadata({ [key]: e.target.value })}
+                            className="w-8 h-6 rounded border border-border cursor-pointer bg-transparent p-0"
+                          />
+                          <span className="text-[10px] text-muted-foreground tabular-nums w-14">
+                            {resumeDocument?.metadata?.[key] ?? def}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
                   <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Padding (mm)</span>
                   <div className="flex flex-col gap-1.5">
                     {([
@@ -474,7 +555,7 @@ export default function ResumeOutputPane() {
               <div className="border-t p-2">
                 <Button
                   variant="ghost" size="sm" className="w-full h-7 text-xs text-muted-foreground"
-                  onClick={() => { setFontSize(14); setLineHeight(1.6); setPadTop(15); setPadRight(15); setPadBottom(15); setPadLeft(15) }}
+                  onClick={() => { setFontSize(14); setLineHeight(1.6); setPadTop(15); setPadRight(15); setPadBottom(15); setPadLeft(15); if (resumeDocument) setResumeDocument({ ...resumeDocument, metadata: { ...resumeDocument.metadata, primaryColor: undefined, metaColor: undefined, accentColor: undefined } }) }}
                 >
                   Reset to defaults
                 </Button>

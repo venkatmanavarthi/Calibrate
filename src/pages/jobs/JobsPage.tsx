@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Briefcase, Plus, RefreshCw, Trash2, ExternalLink, Wand2, Search } from 'lucide-react'
+import { Briefcase, Plus, RefreshCw, Trash2, ExternalLink, Wand2, Search, Telescope } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -22,7 +22,7 @@ import { Badge } from '@/components/ui/badge'
 import { useJobsStore } from '@/stores/jobs.store'
 import { useGeneratorStore } from '@/stores/generator.store'
 import { generateId, now } from '@/lib/utils'
-import type { JobAtsSource, NormalizedJob, TrackedCompany } from '@/types/models'
+import type { JobAtsSource, NormalizedJob, TrackedCompany, YCCompany, AtsProbeResult } from '@/types/models'
 
 const SOURCE_LABEL: Record<JobAtsSource, string> = {
   greenhouse: 'Greenhouse',
@@ -153,6 +153,175 @@ function AddCompanyDialog({
   )
 }
 
+type ProbeStatus = 'idle' | 'probing' | 'found' | 'not-found' | 'added'
+
+interface YCRow {
+  company: YCCompany
+  selected: boolean
+  status: ProbeStatus
+  result: AtsProbeResult | null
+}
+
+function BrowseYCDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const addCompany = useJobsStore((s) => s.addCompany)
+  const refreshCompany = useJobsStore((s) => s.refreshCompany)
+
+  const [loading, setLoading] = useState(false)
+  const [rows, setRows] = useState<YCRow[]>([])
+  const [query, setQuery] = useState('')
+  const [batchFilter, setBatchFilter] = useState('all')
+  const [importing, setImporting] = useState(false)
+  const fetchedRef = useRef(false)
+
+  useEffect(() => {
+    if (!open || fetchedRef.current) return
+    fetchedRef.current = true
+    setLoading(true)
+    window.api.jobsFetchYCCompanies()
+      .then((companies) => {
+        setRows(companies.map((c) => ({ company: c, selected: false, status: 'idle', result: null })))
+      })
+      .finally(() => setLoading(false))
+  }, [open])
+
+  const batches = useMemo(() => {
+    const seen = new Set<string>()
+    rows.forEach((r) => { if (r.company.batch) seen.add(r.company.batch) })
+    return ['all', ...Array.from(seen).sort((a, b) => b.localeCompare(a))]
+  }, [rows])
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return rows.filter((r) => {
+      if (batchFilter !== 'all' && r.company.batch !== batchFilter) return false
+      if (!q) return true
+      return `${r.company.name} ${r.company.oneLiner} ${r.company.tags.join(' ')}`.toLowerCase().includes(q)
+    })
+  }, [rows, query, batchFilter])
+
+  const selectedCount = rows.filter((r) => r.selected).length
+
+  function toggle(id: number) {
+    setRows((prev) => prev.map((r) => r.company.id === id ? { ...r, selected: !r.selected } : r))
+  }
+
+  async function handleImport() {
+    const selected = rows.filter((r) => r.selected)
+    if (!selected.length) return
+    setImporting(true)
+
+    // Probe all selected in parallel (bounded to 5 at a time)
+    const CONCURRENCY = 5
+    for (let i = 0; i < selected.length; i += CONCURRENCY) {
+      const batch = selected.slice(i, i + CONCURRENCY)
+      await Promise.all(batch.map(async (row) => {
+        setRows((prev) => prev.map((r) => r.company.id === row.company.id ? { ...r, status: 'probing' } : r))
+        const result = await window.api.jobsProbeCompanyAts(row.company)
+        if (!result) {
+          setRows((prev) => prev.map((r) => r.company.id === row.company.id ? { ...r, status: 'not-found', result: null } : r))
+          return
+        }
+        setRows((prev) => prev.map((r) => r.company.id === row.company.id ? { ...r, status: 'found', result } : r))
+        const company: TrackedCompany = {
+          id: generateId(),
+          name: row.company.name,
+          source: result.source,
+          slug: result.atsSlug,
+          addedAt: now()
+        }
+        await addCompany(company)
+        await refreshCompany(company.id)
+        setRows((prev) => prev.map((r) => r.company.id === row.company.id ? { ...r, status: 'added' } : r))
+      }))
+    }
+    setImporting(false)
+  }
+
+  const statusBadge = (status: ProbeStatus) => {
+    if (status === 'probing') return <Badge variant="secondary" className="text-[10px] py-0">Probing…</Badge>
+    if (status === 'found') return <Badge variant="secondary" className="text-[10px] py-0 bg-yellow-100 text-yellow-800">Found</Badge>
+    if (status === 'added') return <Badge className="text-[10px] py-0 bg-green-600">Added</Badge>
+    if (status === 'not-found') return <Badge variant="destructive" className="text-[10px] py-0">No ATS</Badge>
+    return null
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
+      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Browse YC Companies</DialogTitle>
+          <DialogDescription>
+            Select companies to track. We'll auto-detect their Greenhouse, Lever, or Ashby job board.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex gap-2 mt-1">
+          <div className="relative flex-1">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search companies…" className="pl-8 h-8 text-sm" />
+          </div>
+          <Select value={batchFilter} onValueChange={setBatchFilter}>
+            <SelectTrigger className="w-[110px] h-8 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {batches.map((b) => <SelectItem key={b} value={b}>{b === 'all' ? 'All batches' : b}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex-1 overflow-y-auto border border-border rounded-md mt-2">
+          {loading ? (
+            <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+              Loading YC companies…
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+              No companies match your search.
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {filtered.map((row) => (
+                <label
+                  key={row.company.id}
+                  className="flex items-start gap-3 px-3 py-2.5 hover:bg-accent/30 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={row.selected}
+                    onChange={() => toggle(row.company.id)}
+                    disabled={row.status === 'added' || importing}
+                    className="mt-0.5 flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium">{row.company.name}</span>
+                      {row.company.batch && <Badge variant="outline" className="text-[10px] py-0">{row.company.batch}</Badge>}
+                      {statusBadge(row.status)}
+                      {row.result && <span className="text-[10px] text-muted-foreground">{row.result.source} · {row.result.atsSlug}</span>}
+                    </div>
+                    {row.company.oneLiner && (
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">{row.company.oneLiner}</p>
+                    )}
+                  </div>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between pt-2">
+          <span className="text-xs text-muted-foreground">{selectedCount} selected</span>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose} disabled={importing}>Close</Button>
+            <Button onClick={handleImport} disabled={importing || selectedCount === 0}>
+              {importing ? 'Importing…' : `Add ${selectedCount || ''} selected`}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function JobRow({ job, onGenerate }: { job: NormalizedJob; onGenerate: (j: NormalizedJob) => void }) {
   const age = daysSince(job.postedAt || job.firstSeenAt)
   return (
@@ -189,11 +358,19 @@ export default function JobsPage() {
   const { companies, jobs, refreshing, load, refreshAll, removeCompany } = useJobsStore()
   const setJobDescription = useGeneratorStore((s) => s.setJobDescription)
   const [addOpen, setAddOpen] = useState(false)
+  const [browseYCOpen, setBrowseYCOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [remoteOnly, setRemoteOnly] = useState(false)
   const [postedWithin, setPostedWithin] = useState<string>('any')
+  const [locationFilter, setLocationFilter] = useState('all')
 
   useEffect(() => { load() }, [load])
+
+  const locations = useMemo(() => {
+    const seen = new Set<string>()
+    jobs.forEach((j) => { if (j.location) seen.add(j.location) })
+    return ['all', ...Array.from(seen).sort()]
+  }, [jobs])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -201,6 +378,7 @@ export default function JobsPage() {
     return jobs
       .filter((j) => {
         if (remoteOnly && !j.remote) return false
+        if (locationFilter !== 'all' && j.location !== locationFilter) return false
         if (maxDays !== null) {
           const age = daysSince(j.postedAt || j.firstSeenAt)
           if (age === null || age > maxDays) return false
@@ -210,7 +388,7 @@ export default function JobsPage() {
         return hay.includes(q)
       })
       .sort((a, b) => (b.postedAt || b.firstSeenAt).localeCompare(a.postedAt || a.firstSeenAt))
-  }, [jobs, query, remoteOnly, postedWithin])
+  }, [jobs, query, remoteOnly, postedWithin, locationFilter])
 
   const handleGenerate = (job: NormalizedJob) => {
     const header = `${job.title} @ ${job.company}\n${job.location}${job.remote ? ' (Remote)' : ''}\n${job.applyUrl}\n\n`
@@ -237,6 +415,10 @@ export default function JobsPage() {
           >
             <RefreshCw size={14} className={`mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh all
+          </Button>
+          <Button variant="outline" onClick={() => setBrowseYCOpen(true)}>
+            <Telescope size={14} className="mr-1.5" />
+            Browse YC
           </Button>
           <Button onClick={() => setAddOpen(true)}>
             <Plus size={14} className="mr-1.5" />
@@ -301,8 +483,16 @@ export default function JobsPage() {
                   className="pl-8"
                 />
               </div>
+              <Select value={locationFilter} onValueChange={setLocationFilter}>
+                <SelectTrigger className="w-[150px]"><SelectValue placeholder="All locations" /></SelectTrigger>
+                <SelectContent>
+                  {locations.map((loc) => (
+                    <SelectItem key={loc} value={loc}>{loc === 'all' ? 'All locations' : loc}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={postedWithin} onValueChange={setPostedWithin}>
-                <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="any">Any time</SelectItem>
                   <SelectItem value="1">Past 24h</SelectItem>
@@ -340,6 +530,7 @@ export default function JobsPage() {
       )}
 
       <AddCompanyDialog open={addOpen} onClose={() => setAddOpen(false)} />
+      <BrowseYCDialog open={browseYCOpen} onClose={() => setBrowseYCOpen(false)} />
     </div>
   )
 }

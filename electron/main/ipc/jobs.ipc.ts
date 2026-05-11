@@ -7,7 +7,8 @@ import {
   upsertJobs
 } from '../storage/jobs.store'
 import { fetchCompanyJobs } from '../jobs/adapters'
-import type { TrackedCompany, JobRefreshResult } from '../../../src/types/models'
+import { fetchAllYCCompanies, probeCompanyAts } from '../jobs/yc-discovery'
+import type { TrackedCompany, JobRefreshResult, YCCompany } from '../../../src/types/models'
 
 export function registerJobsIpc(): void {
   ipcMain.handle('jobs:listCompanies', () => listCompanies())
@@ -50,5 +51,13 @@ export function registerJobsIpc(): void {
         }
       })
     )
+  })
+
+  ipcMain.handle('jobs:fetchYCCompanies', async (): Promise<YCCompany[]> => {
+    return fetchAllYCCompanies()
+  })
+
+  ipcMain.handle('jobs:probeCompanyAts', async (_, company: YCCompany) => {
+    return probeCompanyAts(company)
   })
 }

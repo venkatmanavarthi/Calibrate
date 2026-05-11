@@ -8,6 +8,7 @@ import { registerPdfImportIpc } from './pdf-import.ipc'
 import { registerUpdatesIpc } from './updates.ipc'
 import { registerEmailIpc } from './email.ipc'
 import { registerJobsIpc } from './jobs.ipc'
+import { registerPipelineIpc } from './pipeline.ipc'
 
 export function registerAllIpc(win: BrowserWindow): void {
   registerProfilesIpc()
@@ -20,4 +21,5 @@ export function registerAllIpc(win: BrowserWindow): void {
   registerUpdatesIpc(win)
   registerEmailIpc()
   registerJobsIpc()
+  registerPipelineIpc(win)
 }

@@ -248,6 +248,73 @@ export interface JobRefreshResult {
   errors?: string
 }
 
+export interface YCCompany {
+  id: number
+  name: string
+  slug: string
+  website: string
+  oneLiner: string
+  batch: string
+  status: string
+  tags: string[]
+}
+
+export interface AtsProbeResult {
+  ycCompanyId: number
+  source: JobAtsSource
+  atsSlug: string
+}
+
+// ─── Pipeline ────────────────────────────────────────────────────────────────
+
+export interface Pipeline {
+  id: string
+  name: string
+  profileId: string
+  templateId: string
+  provider: AIProvider
+  model: string
+  companyIds: string[] | 'all'
+  scheduleMinutes: number
+  minScore?: number
+  enabled: boolean
+  createdAt: string
+  updatedAt: string
+  lastRunAt?: string
+}
+
+export type PipelineRunStatus = 'running' | 'completed' | 'error'
+
+export interface PipelineRun {
+  id: string
+  pipelineId: string
+  startedAt: string
+  completedAt?: string
+  status: PipelineRunStatus
+  jobsScanned: number
+  jobsScored: number
+  error?: string
+}
+
+export interface ScoredJob {
+  id: string
+  pipelineId: string
+  runId: string
+  jobId: string
+  jobTitle: string
+  jobCompany: string
+  jobLocation: string
+  jobRemote: boolean
+  jobApplyUrl: string
+  jobSource: JobAtsSource
+  jobDescriptionHtml: string
+  score: number
+  scoreReason: string
+  scoredAt: string
+  resumeMarkdown?: string
+  resumeGeneratedAt?: string
+}
+
 export interface EditElementRequest {
   requestId: string
   resumeDocument: import('./resume-document').ResumeDocument

@@ -121,6 +121,9 @@ export interface WindowAPI {
   onPipelineRunCompleted: (cb: (payload: { pipelineId: string; runId: string; scoredJobs: ScoredJob[] }) => void) => () => void
   onPipelineRunError: (cb: (payload: { pipelineId: string; runId: string; error: string }) => void) => () => void
 
+  // Shell
+  shellOpenExternal: (url: string) => Promise<void>
+
   // Updates
   updatesCheck: () => Promise<void>
   updatesDownload: () => Promise<void>

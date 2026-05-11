@@ -1,85 +1,227 @@
-import fs from 'fs/promises'
-import { PIPELINES_FILE, PIPELINE_RUNS_FILE, PIPELINE_SCORED_JOBS_FILE } from './index'
+import { getDb } from './db'
 import type { Pipeline, PipelineRun, ScoredJob } from '../../../src/types/models'
 
-async function readJson<T>(file: string, fallback: T): Promise<T> {
-  try {
-    const raw = await fs.readFile(file, 'utf-8')
-    return JSON.parse(raw) as T
-  } catch {
-    return fallback
+type PipelineRow = {
+  id: string
+  name: string
+  profileId: string
+  templateId: string
+  provider: string
+  model: string
+  companyIds: string
+  scheduleMinutes: number
+  minScore: number | null
+  enabled: number
+  createdAt: string
+  updatedAt: string
+  lastRunAt: string | null
+}
+
+type RunRow = {
+  id: string
+  pipelineId: string
+  startedAt: string
+  completedAt: string | null
+  status: string
+  jobsScanned: number
+  jobsScored: number
+  error: string | null
+}
+
+type ScoredJobRow = {
+  id: string
+  pipelineId: string
+  runId: string
+  jobId: string
+  jobTitle: string
+  jobCompany: string
+  jobLocation: string
+  jobRemote: number
+  jobApplyUrl: string
+  jobSource: string
+  jobDescriptionHtml: string
+  score: number
+  scoreReason: string
+  scoredAt: string
+  resumeMarkdown: string | null
+  resumeGeneratedAt: string | null
+}
+
+function rowToPipeline(row: PipelineRow): Pipeline {
+  return {
+    ...row,
+    provider: row.provider as Pipeline['provider'],
+    companyIds: JSON.parse(row.companyIds) as string[] | 'all',
+    minScore: row.minScore ?? undefined,
+    enabled: row.enabled === 1,
+    lastRunAt: row.lastRunAt ?? undefined
   }
 }
 
-async function writeJson(file: string, data: unknown): Promise<void> {
-  await fs.writeFile(file, JSON.stringify(data, null, 2), 'utf-8')
+function rowToRun(row: RunRow): PipelineRun {
+  return {
+    ...row,
+    status: row.status as PipelineRun['status'],
+    completedAt: row.completedAt ?? undefined,
+    error: row.error ?? undefined
+  }
+}
+
+function rowToScoredJob(row: ScoredJobRow): ScoredJob {
+  return {
+    ...row,
+    jobSource: row.jobSource as ScoredJob['jobSource'],
+    jobRemote: row.jobRemote === 1,
+    resumeMarkdown: row.resumeMarkdown ?? undefined,
+    resumeGeneratedAt: row.resumeGeneratedAt ?? undefined
+  }
 }
 
 // ─── Pipelines ───────────────────────────────────────────────────────────────
 
 export async function listPipelines(): Promise<Pipeline[]> {
-  return readJson<Pipeline[]>(PIPELINES_FILE, [])
+  const rows = getDb()
+    .prepare('SELECT * FROM pipelines ORDER BY createdAt ASC')
+    .all() as PipelineRow[]
+  return rows.map(rowToPipeline)
 }
 
 export async function savePipeline(pipeline: Pipeline): Promise<void> {
-  const all = await listPipelines()
-  const next = all.filter((p) => p.id !== pipeline.id).concat(pipeline)
-  await writeJson(PIPELINES_FILE, next)
+  getDb()
+    .prepare(`
+      INSERT INTO pipelines
+        (id, name, profileId, templateId, provider, model, companyIds, scheduleMinutes,
+         minScore, enabled, createdAt, updatedAt, lastRunAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        name            = excluded.name,
+        profileId       = excluded.profileId,
+        templateId      = excluded.templateId,
+        provider        = excluded.provider,
+        model           = excluded.model,
+        companyIds      = excluded.companyIds,
+        scheduleMinutes = excluded.scheduleMinutes,
+        minScore        = excluded.minScore,
+        enabled         = excluded.enabled,
+        updatedAt       = excluded.updatedAt,
+        lastRunAt       = excluded.lastRunAt
+    `)
+    .run(
+      pipeline.id, pipeline.name, pipeline.profileId, pipeline.templateId,
+      pipeline.provider, pipeline.model, JSON.stringify(pipeline.companyIds),
+      pipeline.scheduleMinutes, pipeline.minScore ?? null,
+      pipeline.enabled ? 1 : 0,
+      pipeline.createdAt, pipeline.updatedAt, pipeline.lastRunAt ?? null
+    )
 }
 
 export async function deletePipeline(id: string): Promise<void> {
-  const all = await listPipelines()
-  await writeJson(PIPELINES_FILE, all.filter((p) => p.id !== id))
-  // Cascade delete runs and scored jobs
-  const runs = await listRuns()
-  const runIds = new Set(runs.filter((r) => r.pipelineId === id).map((r) => r.id))
-  await writeJson(PIPELINE_RUNS_FILE, runs.filter((r) => r.pipelineId !== id))
-  const jobs = await listScoredJobs()
-  await writeJson(PIPELINE_SCORED_JOBS_FILE, jobs.filter((j) => !runIds.has(j.runId) && j.pipelineId !== id))
+  const db = getDb()
+  db.transaction(() => {
+    db.prepare('DELETE FROM scored_jobs WHERE pipelineId = ?').run(id)
+    db.prepare('DELETE FROM pipeline_runs WHERE pipelineId = ?').run(id)
+    db.prepare('DELETE FROM pipelines WHERE id = ?').run(id)
+  })()
 }
 
 export async function updatePipelineLastRun(id: string, lastRunAt: string): Promise<void> {
-  const all = await listPipelines()
-  await writeJson(PIPELINES_FILE, all.map((p) => p.id === id ? { ...p, lastRunAt } : p))
+  getDb()
+    .prepare('UPDATE pipelines SET lastRunAt = ? WHERE id = ?')
+    .run(lastRunAt, id)
 }
 
 // ─── Runs ─────────────────────────────────────────────────────────────────────
 
 export async function listRuns(): Promise<PipelineRun[]> {
-  return readJson<PipelineRun[]>(PIPELINE_RUNS_FILE, [])
+  const rows = getDb()
+    .prepare('SELECT * FROM pipeline_runs ORDER BY startedAt DESC')
+    .all() as RunRow[]
+  return rows.map(rowToRun)
 }
 
 export async function saveRun(run: PipelineRun): Promise<void> {
-  const all = await listRuns()
-  const next = all.filter((r) => r.id !== run.id).concat(run)
-  await writeJson(PIPELINE_RUNS_FILE, next)
+  getDb()
+    .prepare(`
+      INSERT INTO pipeline_runs
+        (id, pipelineId, startedAt, completedAt, status, jobsScanned, jobsScored, error)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        completedAt = excluded.completedAt,
+        status      = excluded.status,
+        jobsScanned = excluded.jobsScanned,
+        jobsScored  = excluded.jobsScored,
+        error       = excluded.error
+    `)
+    .run(
+      run.id, run.pipelineId, run.startedAt,
+      run.completedAt ?? null, run.status,
+      run.jobsScanned, run.jobsScored, run.error ?? null
+    )
 }
 
 // ─── Scored jobs ──────────────────────────────────────────────────────────────
 
 export async function listScoredJobs(): Promise<ScoredJob[]> {
-  return readJson<ScoredJob[]>(PIPELINE_SCORED_JOBS_FILE, [])
+  const rows = getDb()
+    .prepare('SELECT * FROM scored_jobs ORDER BY scoredAt DESC')
+    .all() as ScoredJobRow[]
+  return rows.map(rowToScoredJob)
 }
 
 export async function saveScoredJob(job: ScoredJob): Promise<void> {
-  const all = await listScoredJobs()
-  const next = all.filter((j) => j.id !== job.id).concat(job)
-  await writeJson(PIPELINE_SCORED_JOBS_FILE, next)
+  getDb()
+    .prepare(`
+      INSERT INTO scored_jobs
+        (id, pipelineId, runId, jobId, jobTitle, jobCompany, jobLocation, jobRemote,
+         jobApplyUrl, jobSource, jobDescriptionHtml, score, scoreReason, scoredAt,
+         resumeMarkdown, resumeGeneratedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        score             = excluded.score,
+        scoreReason       = excluded.scoreReason,
+        resumeMarkdown    = excluded.resumeMarkdown,
+        resumeGeneratedAt = excluded.resumeGeneratedAt
+    `)
+    .run(
+      job.id, job.pipelineId, job.runId, job.jobId,
+      job.jobTitle, job.jobCompany, job.jobLocation, job.jobRemote ? 1 : 0,
+      job.jobApplyUrl, job.jobSource, job.jobDescriptionHtml,
+      job.score, job.scoreReason, job.scoredAt,
+      job.resumeMarkdown ?? null, job.resumeGeneratedAt ?? null
+    )
 }
 
 export async function saveScoredJobs(jobs: ScoredJob[]): Promise<void> {
-  const all = await listScoredJobs()
-  const incoming = new Map(jobs.map((j) => [j.id, j]))
-  const merged = all.map((j) => incoming.get(j.id) ?? j)
-  const newIds = new Set(all.map((j) => j.id))
-  for (const job of jobs) {
-    if (!newIds.has(job.id)) merged.push(job)
-  }
-  await writeJson(PIPELINE_SCORED_JOBS_FILE, merged)
+  if (jobs.length === 0) return
+  const db = getDb()
+  const upsert = db.prepare(`
+    INSERT INTO scored_jobs
+      (id, pipelineId, runId, jobId, jobTitle, jobCompany, jobLocation, jobRemote,
+       jobApplyUrl, jobSource, jobDescriptionHtml, score, scoreReason, scoredAt,
+       resumeMarkdown, resumeGeneratedAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      score             = excluded.score,
+      scoreReason       = excluded.scoreReason,
+      resumeMarkdown    = excluded.resumeMarkdown,
+      resumeGeneratedAt = excluded.resumeGeneratedAt
+  `)
+  db.transaction(() => {
+    for (const job of jobs) {
+      upsert.run(
+        job.id, job.pipelineId, job.runId, job.jobId,
+        job.jobTitle, job.jobCompany, job.jobLocation, job.jobRemote ? 1 : 0,
+        job.jobApplyUrl, job.jobSource, job.jobDescriptionHtml,
+        job.score, job.scoreReason, job.scoredAt,
+        job.resumeMarkdown ?? null, job.resumeGeneratedAt ?? null
+      )
+    }
+  })()
 }
 
-/** Returns true if this job has already been scored by any pipeline */
 export async function isJobAlreadyScored(jobId: string): Promise<boolean> {
-  const all = await listScoredJobs()
-  return all.some((j) => j.jobId === jobId)
+  const row = getDb()
+    .prepare('SELECT 1 FROM scored_jobs WHERE jobId = ? LIMIT 1')
+    .get(jobId)
+  return row !== undefined
 }

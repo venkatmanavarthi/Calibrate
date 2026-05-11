@@ -1,71 +1,111 @@
-import fs from 'fs/promises'
-import { COMPANIES_FILE, JOBS_CACHE_FILE } from './index'
+import { getDb } from './db'
 import type { TrackedCompany, NormalizedJob } from '../../../src/types/models'
 
-async function readJson<T>(file: string, fallback: T): Promise<T> {
-  try {
-    const raw = await fs.readFile(file, 'utf-8')
-    return JSON.parse(raw) as T
-  } catch {
-    return fallback
-  }
+type JobRow = {
+  id: string
+  source: string
+  externalId: string
+  company: string
+  companyId: string
+  title: string
+  location: string
+  remote: number
+  department: string | null
+  employmentType: string | null
+  descriptionHtml: string
+  applyUrl: string
+  postedAt: string
+  updatedAt: string
+  firstSeenAt: string
+  lastSeenAt: string
 }
 
-async function writeJson(file: string, data: unknown): Promise<void> {
-  await fs.writeFile(file, JSON.stringify(data, null, 2), 'utf-8')
+function rowToJob(row: JobRow): NormalizedJob {
+  return {
+    ...row,
+    source: row.source as NormalizedJob['source'],
+    remote: row.remote === 1,
+    department: row.department ?? undefined,
+    employmentType: row.employmentType ?? undefined
+  }
 }
 
 export async function listCompanies(): Promise<TrackedCompany[]> {
-  return readJson<TrackedCompany[]>(COMPANIES_FILE, [])
+  return getDb()
+    .prepare('SELECT * FROM companies ORDER BY addedAt ASC')
+    .all() as TrackedCompany[]
 }
 
 export async function saveCompany(company: TrackedCompany): Promise<void> {
-  const all = await listCompanies()
-  const next = all.filter((c) => c.id !== company.id).concat(company)
-  await writeJson(COMPANIES_FILE, next)
+  getDb()
+    .prepare(`
+      INSERT INTO companies (id, name, source, slug, addedAt) VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        name   = excluded.name,
+        source = excluded.source,
+        slug   = excluded.slug
+    `)
+    .run(company.id, company.name, company.source, company.slug, company.addedAt)
 }
 
 export async function deleteCompany(id: string): Promise<void> {
-  const all = await listCompanies()
-  await writeJson(COMPANIES_FILE, all.filter((c) => c.id !== id))
-  const jobs = await listJobs()
-  await writeJson(JOBS_CACHE_FILE, jobs.filter((j) => j.companyId !== id))
+  const db = getDb()
+  db.transaction(() => {
+    db.prepare('DELETE FROM jobs WHERE companyId = ?').run(id)
+    db.prepare('DELETE FROM companies WHERE id = ?').run(id)
+  })()
 }
 
 export async function listJobs(): Promise<NormalizedJob[]> {
-  return readJson<NormalizedJob[]>(JOBS_CACHE_FILE, [])
+  const rows = getDb()
+    .prepare('SELECT * FROM jobs ORDER BY lastSeenAt DESC')
+    .all() as JobRow[]
+  return rows.map(rowToJob)
 }
 
 export async function upsertJobs(companyId: string, incoming: NormalizedJob[]): Promise<number> {
-  const all = await listJobs()
-  const byKey = new Map(all.map((j) => [`${j.source}:${j.externalId}`, j]))
+  if (incoming.length === 0) return 0
+
+  const db = getDb()
   const now = new Date().toISOString()
-  let added = 0
-  for (const job of incoming) {
-    const key = `${job.source}:${job.externalId}`
-    const existing = byKey.get(key)
-    if (existing) {
-      byKey.set(key, {
-        ...existing,
-        title: job.title,
-        location: job.location,
-        remote: job.remote,
-        department: job.department,
-        employmentType: job.employmentType,
-        descriptionHtml: job.descriptionHtml,
-        applyUrl: job.applyUrl,
-        postedAt: job.postedAt || existing.postedAt,
-        updatedAt: job.updatedAt,
-        lastSeenAt: now
-      })
-    } else {
-      byKey.set(key, { ...job, firstSeenAt: now, lastSeenAt: now })
-      added++
+
+  const countBefore = (
+    db.prepare('SELECT COUNT(*) AS n FROM jobs WHERE companyId = ?').get(companyId) as { n: number }
+  ).n
+
+  const upsert = db.prepare(`
+    INSERT INTO jobs
+      (id, source, externalId, company, companyId, title, location, remote,
+       department, employmentType, descriptionHtml, applyUrl, postedAt, updatedAt, firstSeenAt, lastSeenAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(source, externalId) DO UPDATE SET
+      title           = excluded.title,
+      location        = excluded.location,
+      remote          = excluded.remote,
+      department      = excluded.department,
+      employmentType  = excluded.employmentType,
+      descriptionHtml = excluded.descriptionHtml,
+      applyUrl        = excluded.applyUrl,
+      postedAt        = COALESCE(excluded.postedAt, jobs.postedAt),
+      updatedAt       = excluded.updatedAt,
+      lastSeenAt      = excluded.lastSeenAt
+  `)
+
+  db.transaction(() => {
+    for (const job of incoming) {
+      upsert.run(
+        job.id, job.source, job.externalId, job.company, job.companyId,
+        job.title, job.location, job.remote ? 1 : 0,
+        job.department ?? null, job.employmentType ?? null,
+        job.descriptionHtml, job.applyUrl, job.postedAt, job.updatedAt,
+        now, now
+      )
     }
-  }
-  // Keep jobs from other companies untouched
-  const others = all.filter((j) => j.companyId !== companyId)
-  const updatedForCompany = Array.from(byKey.values()).filter((j) => j.companyId === companyId)
-  await writeJson(JOBS_CACHE_FILE, [...others, ...updatedForCompany])
-  return added
+  })()
+
+  const countAfter = (
+    db.prepare('SELECT COUNT(*) AS n FROM jobs WHERE companyId = ?').get(companyId) as { n: number }
+  ).n
+
+  return countAfter - countBefore
 }

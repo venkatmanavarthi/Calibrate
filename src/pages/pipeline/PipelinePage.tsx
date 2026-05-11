@@ -195,9 +195,11 @@ function PipelineFormDialog({
               }}>
                 <SelectTrigger><SelectValue placeholder="Provider" /></SelectTrigger>
                 <SelectContent>
-                  {(settings?.configuredProviders ?? []).map((p) => (
-                    <SelectItem key={p} value={p}>{PROVIDER_LABELS[p] ?? p}</SelectItem>
-                  ))}
+                  {[...(settings?.configuredProviders ?? []), 'lmstudio' as const]
+                    .filter((p, i, a) => a.indexOf(p) === i)
+                    .map((p) => (
+                      <SelectItem key={p} value={p}>{PROVIDER_LABELS[p] ?? p}</SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -367,7 +369,7 @@ function ScoredJobRow({
             <Wand2 size={13} />
           </Button>
         )}
-        <Button variant="ghost" size="sm" onClick={() => window.open(job.jobApplyUrl, '_blank')}>
+        <Button variant="ghost" size="sm" onClick={() => window.api.shellOpenExternal(job.jobApplyUrl)}>
           <ExternalLink size={13} />
         </Button>
         {generating && <Loader2 size={13} className="animate-spin text-muted-foreground" />}

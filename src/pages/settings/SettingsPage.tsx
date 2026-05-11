@@ -132,62 +132,62 @@ export default function SettingsPage() {
 
       <Separator />
 
-      {/* Default AI Model */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="font-semibold">Default AI Model</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Used for resume generation and PDF profile import.</p>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label>Provider</Label>
-            <Select
-              value={settings.preferredProvider}
-              onValueChange={(v) => {
-                const provider = v as AIProvider
-                save({ preferredProvider: provider })
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ALL_PROVIDERS.map((p) => (
-                  <SelectItem key={p} value={p}>{PROVIDER_LABELS[p]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Model</Label>
-            <Select
-              value={settings.preferredModels[settings.preferredProvider]}
-              onValueChange={(v) => {
-                save({
-                  preferredModels: {
-                    ...settings.preferredModels,
-                    [settings.preferredProvider]: v
+      {/* Default AI Model — only shown when at least one provider is ready */}
+      {(() => {
+        const availableProviders = ALL_PROVIDERS.filter(
+          (p) => !KEY_REQUIRED[p] || settings.configuredProviders.includes(p)
+        )
+        if (availableProviders.length === 0) return null
+        const currentProvider = availableProviders.includes(settings.preferredProvider)
+          ? settings.preferredProvider
+          : availableProviders[0]
+        return (
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-semibold">Default AI Model</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Used for resume generation and PDF profile import.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Provider</Label>
+                <Select
+                  value={currentProvider}
+                  onValueChange={(v) => save({ preferredProvider: v as AIProvider })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableProviders.map((p) => (
+                      <SelectItem key={p} value={p}>{PROVIDER_LABELS[p]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Model</Label>
+                <Select
+                  value={settings.preferredModels[currentProvider]}
+                  onValueChange={(v) =>
+                    save({
+                      preferredModels: { ...settings.preferredModels, [currentProvider]: v }
+                    })
                   }
-                })
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(PROVIDER_MODELS[settings.preferredProvider] ?? [settings.preferredModels[settings.preferredProvider]]).map((m) => (
-                  <SelectItem key={m} value={m}>{m}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(PROVIDER_MODELS[currentProvider] ?? [settings.preferredModels[currentProvider]]).map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
-        </div>
-        {KEY_REQUIRED[settings.preferredProvider] && (
-          <p className="text-xs text-muted-foreground">
-            Make sure an API key for <strong>{PROVIDER_LABELS[settings.preferredProvider]}</strong> is configured above.
-          </p>
-        )}
-      </div>
+        )
+      })()}
 
       <Separator />
 

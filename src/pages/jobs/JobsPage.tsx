@@ -56,7 +56,7 @@ function JobRow({ job, onGenerate }: { job: NormalizedJob; onGenerate: (j: Norma
         </div>
       </div>
       <div className="flex items-center gap-1 flex-shrink-0">
-        <Button variant="ghost" size="sm" onClick={() => window.open(job.applyUrl, '_blank')}>
+        <Button variant="ghost" size="sm" onClick={() => window.api.shellOpenExternal(job.applyUrl)}>
           <ExternalLink size={14} />
         </Button>
         <Button size="sm" onClick={() => onGenerate(job)}>

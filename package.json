@@ -15,7 +15,8 @@
     "package:win": "bun run build && electron-builder --win",
     "package:linux": "bun run build && electron-builder --linux",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
-    "icons": "bun run scripts/build-icons.ts"
+    "icons": "bun run scripts/build-icons.ts",
+    "rebuild": "electron-rebuild -f -w better-sqlite3"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.0",
@@ -42,6 +43,7 @@
     "@radix-ui/react-toast": "^1.2.1",
     "@radix-ui/react-tooltip": "^1.1.2",
     "@react-pdf/renderer": "^4.5.1",
+    "better-sqlite3": "^12.9.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "electron-updater": "^6.3.0",
@@ -61,6 +63,8 @@
     "zustand": "^4.5.4"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.14.0",
     "@types/pdf-parse": "^1.1.5",
     "@types/react": "^18.3.3",

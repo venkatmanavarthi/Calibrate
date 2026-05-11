@@ -88,39 +88,47 @@ export default function JobInputPane({ onGenerate, onCancel }: Props) {
           </Select>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Provider</Label>
-            <Select value={activeProvider} onValueChange={(v) => {
-              setProvider(v as typeof activeProvider)
-              const models = PROVIDER_MODELS[v] ?? []
-              if (models.length > 0) setModel(models[0])
-            }}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(PROVIDER_LABELS).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>{label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {(() => {
+          const availableProviders = (settings?.configuredProviders ?? [])
+            .concat('lmstudio' as const)
+            .filter((p, i, a) => a.indexOf(p) === i)
+          if (availableProviders.length === 0) return null
+          return (
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Provider</Label>
+                <Select value={activeProvider} onValueChange={(v) => {
+                  setProvider(v as typeof activeProvider)
+                  const models = PROVIDER_MODELS[v] ?? []
+                  if (models.length > 0) setModel(models[0])
+                }}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableProviders.map((p) => (
+                      <SelectItem key={p} value={p}>{PROVIDER_LABELS[p]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Model</Label>
-            <Select value={activeModel} onValueChange={setModel}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(PROVIDER_MODELS[activeProvider] ?? [activeModel]).map((m) => (
-                  <SelectItem key={m} value={m}>{m}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Model</Label>
+                <Select value={activeModel} onValueChange={setModel}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(PROVIDER_MODELS[activeProvider] ?? [activeModel]).map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )
+        })()}
       </div>
 
       <div className="flex-1 flex flex-col space-y-1.5 min-h-0">

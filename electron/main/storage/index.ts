@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import path from 'path'
 import fs from 'fs/promises'
+import { initDb, migrateFromJson } from './db'
 
 export const STORAGE_ROOT = app.getPath('userData')
 export const PROFILES_DIR = path.join(STORAGE_ROOT, 'profiles')
@@ -22,4 +23,6 @@ export async function ensureDirectories(): Promise<void> {
   await fs.mkdir(TEMPLATES_DIR, { recursive: true })
   await fs.mkdir(JOBS_DIR, { recursive: true })
   await fs.mkdir(PIPELINE_DIR, { recursive: true })
+  initDb()
+  await migrateFromJson()
 }

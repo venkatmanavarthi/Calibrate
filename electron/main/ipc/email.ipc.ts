@@ -6,6 +6,12 @@ import fs from 'fs'
 import { exportToPdf } from '../pdf/exporter'
 import type { PdfExportRequest } from '../../../src/types/models'
 
+export function registerShellIpc(): void {
+  ipcMain.handle('shell:openExternal', async (_, url: string) => {
+    await shell.openExternal(url)
+  })
+}
+
 export function registerEmailIpc(): void {
   ipcMain.handle('pdf:emailExport', async (_, req: PdfExportRequest) => {
     const tmpPath = path.join(os.tmpdir(), `resume-${Date.now()}.pdf`)

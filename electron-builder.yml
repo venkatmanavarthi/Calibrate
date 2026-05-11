@@ -16,6 +16,9 @@ files:
   - "!node_modules/**/*"
 
 asar: true
+asarUnpack:
+  - "**/better-sqlite3/**"
+  - "**/*.node"
 
 fileAssociations:
   - ext: calibrate

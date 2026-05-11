@@ -112,6 +112,9 @@ const api: WindowAPI = {
     return () => ipcRenderer.removeListener('pipeline:runError', handler)
   },
 
+  // Shell
+  shellOpenExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
+
   // Updates
   updatesCheck: () => ipcRenderer.invoke('updates:check'),
   updatesDownload: () => ipcRenderer.invoke('updates:download'),

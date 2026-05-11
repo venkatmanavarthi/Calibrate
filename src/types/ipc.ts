@@ -14,7 +14,12 @@ import type {
   EditElementRequest,
   TrackedCompany,
   NormalizedJob,
-  JobRefreshResult
+  JobRefreshResult,
+  YCCompany,
+  AtsProbeResult,
+  Pipeline,
+  PipelineRun,
+  ScoredJob
 } from './models'
 import type { ResumeDocument } from './resume-document'
 
@@ -31,6 +36,14 @@ export interface UpdateProgress {
   percent: number
   bytesPerSecond: number
   transferred: number
+  total: number
+}
+
+export type PipelineRunProgressPayload = {
+  pipelineId: string
+  runId: string
+  phase: 'scanning' | 'scoring'
+  current: number
   total: number
 }
 
@@ -92,6 +105,21 @@ export interface WindowAPI {
   jobsListJobs: () => Promise<NormalizedJob[]>
   jobsRefreshCompany: (id: string) => Promise<JobRefreshResult>
   jobsRefreshAll: () => Promise<JobRefreshResult[]>
+  jobsFetchYCCompanies: () => Promise<YCCompany[]>
+  jobsProbeCompanyAts: (company: YCCompany) => Promise<AtsProbeResult | null>
+
+  // Pipeline
+  pipelineList: () => Promise<Pipeline[]>
+  pipelineSave: (p: Pipeline) => Promise<{ ok: true }>
+  pipelineDelete: (id: string) => Promise<{ ok: true }>
+  pipelineListRuns: () => Promise<PipelineRun[]>
+  pipelineListScoredJobs: () => Promise<ScoredJob[]>
+  pipelineRunNow: (id: string) => Promise<{ ok: true }>
+  pipelineGenerateResumes: (pipelineId: string, scoredJobIds: string[]) => Promise<ScoredJob[]>
+  onPipelineRunStarted: (cb: (payload: { pipelineId: string; runId: string }) => void) => () => void
+  onPipelineRunProgress: (cb: (payload: PipelineRunProgressPayload) => void) => () => void
+  onPipelineRunCompleted: (cb: (payload: { pipelineId: string; runId: string; scoredJobs: ScoredJob[] }) => void) => () => void
+  onPipelineRunError: (cb: (payload: { pipelineId: string; runId: string; error: string }) => void) => () => void
 
   // Updates
   updatesCheck: () => Promise<void>
@@ -126,5 +154,11 @@ export type {
   EditElementRequest,
   TrackedCompany,
   NormalizedJob,
-  JobRefreshResult
+  JobRefreshResult,
+  YCCompany,
+  AtsProbeResult,
+  Pipeline,
+  PipelineRun,
+  ScoredJob
 }
+

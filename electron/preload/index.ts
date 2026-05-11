@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { WindowAPI, UpdateState, UpdateProgress } from '../../src/types/ipc'
+import type { WindowAPI, UpdateState, UpdateProgress, PipelineRunProgressPayload, ScoredJob } from '../../src/types/ipc'
 
 const api: WindowAPI = {
   // Profiles
@@ -79,6 +79,38 @@ const api: WindowAPI = {
   jobsListJobs: () => ipcRenderer.invoke('jobs:listJobs'),
   jobsRefreshCompany: (id) => ipcRenderer.invoke('jobs:refreshCompany', id),
   jobsRefreshAll: () => ipcRenderer.invoke('jobs:refreshAll'),
+  jobsFetchYCCompanies: () => ipcRenderer.invoke('jobs:fetchYCCompanies'),
+  jobsProbeCompanyAts: (company) => ipcRenderer.invoke('jobs:probeCompanyAts', company),
+
+  // Pipeline
+  pipelineList: () => ipcRenderer.invoke('pipeline:list'),
+  pipelineSave: (p) => ipcRenderer.invoke('pipeline:save', p),
+  pipelineDelete: (id) => ipcRenderer.invoke('pipeline:delete', id),
+  pipelineListRuns: () => ipcRenderer.invoke('pipeline:listRuns'),
+  pipelineListScoredJobs: () => ipcRenderer.invoke('pipeline:listScoredJobs'),
+  pipelineRunNow: (id) => ipcRenderer.invoke('pipeline:runNow', id),
+  pipelineGenerateResumes: (pipelineId, scoredJobIds) =>
+    ipcRenderer.invoke('pipeline:generateResumes', pipelineId, scoredJobIds),
+  onPipelineRunStarted: (cb) => {
+    const handler = (_: Electron.IpcRendererEvent, payload: Parameters<typeof cb>[0]) => cb(payload)
+    ipcRenderer.on('pipeline:runStarted', handler)
+    return () => ipcRenderer.removeListener('pipeline:runStarted', handler)
+  },
+  onPipelineRunProgress: (cb) => {
+    const handler = (_: Electron.IpcRendererEvent, payload: PipelineRunProgressPayload) => cb(payload)
+    ipcRenderer.on('pipeline:runProgress', handler)
+    return () => ipcRenderer.removeListener('pipeline:runProgress', handler)
+  },
+  onPipelineRunCompleted: (cb) => {
+    const handler = (_: Electron.IpcRendererEvent, payload: { pipelineId: string; runId: string; scoredJobs: ScoredJob[] }) => cb(payload)
+    ipcRenderer.on('pipeline:runCompleted', handler)
+    return () => ipcRenderer.removeListener('pipeline:runCompleted', handler)
+  },
+  onPipelineRunError: (cb) => {
+    const handler = (_: Electron.IpcRendererEvent, payload: { pipelineId: string; runId: string; error: string }) => cb(payload)
+    ipcRenderer.on('pipeline:runError', handler)
+    return () => ipcRenderer.removeListener('pipeline:runError', handler)
+  },
 
   // Updates
   updatesCheck: () => ipcRenderer.invoke('updates:check'),

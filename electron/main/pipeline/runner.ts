@@ -83,7 +83,7 @@ export async function runPipeline(pipeline: Pipeline, win: BrowserWindow): Promi
         total: jobs.length
       })
 
-      const alreadyScored = await isJobAlreadyScored(pipeline.id, job.id)
+      const alreadyScored = await isJobAlreadyScored(job.id)
       if (alreadyScored) continue
 
       try {

@@ -78,8 +78,8 @@ export async function saveScoredJobs(jobs: ScoredJob[]): Promise<void> {
   await writeJson(PIPELINE_SCORED_JOBS_FILE, merged)
 }
 
-/** Returns true if this job (by source+externalId) has already been scored for this pipeline */
-export async function isJobAlreadyScored(pipelineId: string, jobId: string): Promise<boolean> {
+/** Returns true if this job has already been scored by any pipeline */
+export async function isJobAlreadyScored(jobId: string): Promise<boolean> {
   const all = await listScoredJobs()
-  return all.some((j) => j.pipelineId === pipelineId && j.jobId === jobId)
+  return all.some((j) => j.jobId === jobId)
 }

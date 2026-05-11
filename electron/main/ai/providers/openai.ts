@@ -20,10 +20,15 @@ export class OpenAICompatibleProvider implements LLMProvider {
 
   async generate(messages: Message[], opts: GenerateOptions, onChunk: StreamChunkCallback): Promise<string> {
     let fullText = ''
+    const isLegacyModel = opts.model.startsWith('gpt-4o')
+    const tokenParam = isLegacyModel
+      ? { max_tokens: opts.maxTokens ?? 4096 }
+      : { max_completion_tokens: opts.maxTokens ?? 4096 }
+    const temperatureParam = isLegacyModel ? { temperature: opts.temperature ?? 0.2 } : {}
     const stream = await this.client.chat.completions.create({
       model: opts.model,
-      temperature: opts.temperature ?? 0.2,
-      max_tokens: opts.maxTokens ?? 4096,
+      ...temperatureParam,
+      ...tokenParam,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
       stream: true
     })

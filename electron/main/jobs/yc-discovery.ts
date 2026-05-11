@@ -2,7 +2,7 @@ import fs from 'fs/promises'
 import { YC_CACHE_FILE } from '../storage/index'
 import type { YCCompany, JobAtsSource, AtsProbeResult } from '../../../src/types/models'
 
-const YC_API = 'https://api.ycombinator.com/v0.1/companies'
+const YC_API = 'https://yc-oss.github.io/api/companies/all.json'
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000
 
 interface YCApiCompany {
@@ -10,30 +10,15 @@ interface YCApiCompany {
   name: string
   slug: string
   website: string
-  oneLiner: string
+  one_liner: string
   batch: string
   status: string
   tags: string[]
 }
 
-interface YCApiPage {
-  companies: YCApiCompany[]
-  totalPages: number
-  nextPage: string | null
-}
-
 interface YCCache {
   fetchedAt: string
   companies: YCCompany[]
-}
-
-async function fetchPage(page: number): Promise<YCApiPage> {
-  const res = await fetch(`${YC_API}?page=${page}`, {
-    headers: { Accept: 'application/json' },
-    signal: AbortSignal.timeout(15000)
-  })
-  if (!res.ok) throw new Error(`YC API responded ${res.status}`)
-  return res.json() as Promise<YCApiPage>
 }
 
 function normalize(c: YCApiCompany): YCCompany {
@@ -42,7 +27,7 @@ function normalize(c: YCApiCompany): YCCompany {
     name: c.name,
     slug: c.slug,
     website: c.website ?? '',
-    oneLiner: c.oneLiner ?? '',
+    oneLiner: c.one_liner ?? '',
     batch: c.batch ?? '',
     status: c.status ?? '',
     tags: c.tags ?? []
@@ -52,7 +37,6 @@ function normalize(c: YCApiCompany): YCCompany {
 export async function fetchAllYCCompanies(
   onProgress?: (fetched: number, total: number) => void
 ): Promise<YCCompany[]> {
-  // Return cached data if fresh
   try {
     const raw = await fs.readFile(YC_CACHE_FILE, 'utf-8')
     const cache = JSON.parse(raw) as YCCache
@@ -63,23 +47,16 @@ export async function fetchAllYCCompanies(
     // cache miss or corrupt
   }
 
-  // Fetch page 1 to get totalPages
-  const first = await fetchPage(1)
-  const { totalPages } = first
-  const companies: YCCompany[] = first.companies.map(normalize)
-  onProgress?.(companies.length, totalPages * 25)
-
-  // Fetch remaining pages with bounded concurrency
-  const CONCURRENCY = 5
-  for (let start = 2; start <= totalPages; start += CONCURRENCY) {
-    const batch = Array.from(
-      { length: Math.min(CONCURRENCY, totalPages - start + 1) },
-      (_, i) => fetchPage(start + i)
-    )
-    const pages = await Promise.all(batch)
-    for (const p of pages) companies.push(...p.companies.map(normalize))
-    onProgress?.(companies.length, totalPages * 25)
-  }
+  const res = await fetch(YC_API, {
+    headers: { Accept: 'application/json' },
+    signal: AbortSignal.timeout(30000)
+  })
+  if (!res.ok) throw new Error(`YC API responded ${res.status}`)
+  const raw = (await res.json()) as YCApiCompany[]
+  const companies = raw
+    .filter((c) => c.status === 'Active' || c.status === 'Public')
+    .map(normalize)
+  onProgress?.(companies.length, companies.length)
 
   const cache: YCCache = { fetchedAt: new Date().toISOString(), companies }
   await fs.writeFile(YC_CACHE_FILE, JSON.stringify(cache), 'utf-8')

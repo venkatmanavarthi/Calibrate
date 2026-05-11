@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Routes, Route, useNavigate } from 'react-router-dom'
+import React, { useState, useEffect, useCallback } from 'react'
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import AppShell from '@/components/layout/AppShell'
 import Dashboard from '@/pages/Dashboard'
 import ProfileList from '@/pages/profiles/ProfileList'
@@ -8,6 +8,7 @@ import TemplateList from '@/pages/templates/TemplateList'
 import TemplateEditor from '@/pages/templates/TemplateEditor'
 import GeneratorPage from '@/pages/generator/GeneratorPage'
 import JobsPage from '@/pages/jobs/JobsPage'
+import CompaniesPage from '@/pages/companies/CompaniesPage'
 import PipelinePage from '@/pages/pipeline/PipelinePage'
 import PromptsPage from '@/pages/prompts/PromptsPage'
 import SettingsPage from '@/pages/settings/SettingsPage'
@@ -65,6 +66,16 @@ function CalibrateImportDialog({
   )
 }
 
+// Keeps a page mounted after first visit — avoids remount cost on tab switch.
+function PersistentRoutePanel({ path, children }: { path: string; children: React.ReactNode }) {
+  const { pathname } = useLocation()
+  const isActive = pathname === path
+  const [everActive, setEverActive] = useState(isActive)
+  useEffect(() => { if (isActive) setEverActive(true) }, [isActive])
+  if (!everActive) return null
+  return <div style={{ display: isActive ? undefined : 'none' }}>{children}</div>
+}
+
 type PendingPrompts = { generation: string; revision: string }
 
 function PromptsImportDialog({
@@ -120,6 +131,8 @@ export default function App() {
 
   return (
     <AppShell>
+      <PersistentRoutePanel path="/jobs"><JobsPage /></PersistentRoutePanel>
+      <PersistentRoutePanel path="/companies"><CompaniesPage /></PersistentRoutePanel>
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/profiles" element={<ProfileList />} />
@@ -128,7 +141,6 @@ export default function App() {
         <Route path="/templates" element={<TemplateList />} />
         <Route path="/templates/new" element={<TemplateEditor />} />
         <Route path="/templates/:id" element={<TemplateEditor />} />
-        <Route path="/jobs" element={<JobsPage />} />
         <Route path="/pipeline" element={<PipelinePage />} />
         <Route path="/generate" element={<GeneratorPage />} />
         <Route path="/prompts" element={<PromptsPage />} />

@@ -13,7 +13,7 @@ export async function buildProvider(provider: AIProvider, settings: AppSettings)
       return new AnthropicProvider(key ?? '')
 
     case 'openai':
-      return new OpenAICompatibleProvider('openai', ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'], key ?? '')
+      return new OpenAICompatibleProvider('openai', ['gpt-5.5', 'gpt-5.4-mini', 'gpt-4o'], key ?? '')
 
     case 'groq':
       return new OpenAICompatibleProvider(

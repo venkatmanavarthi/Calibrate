@@ -21,6 +21,7 @@ import { useTemplatesStore } from '@/stores/templates.store'
 import { useSettingsStore } from '@/stores/settings.store'
 import { useGeneratorStore } from '@/stores/generator.store'
 import { generateId, now } from '@/lib/utils'
+import { PROVIDER_LABELS, PROVIDER_MODELS } from '@/lib/ai-providers'
 import type { Pipeline, ScoredJob } from '@/types/models'
 
 const SCHEDULE_OPTIONS = [
@@ -97,8 +98,9 @@ function PipelineFormDialog({
       setName('')
       setProfileId(profiles[0]?.id ?? '')
       setTemplateId(templates[0]?.id ?? '')
-      setProvider(settings?.preferredProvider ?? 'anthropic')
-      setModel('')
+      const defaultProvider = settings?.preferredProvider ?? 'anthropic'
+      setProvider(defaultProvider)
+      setModel(PROVIDER_MODELS[defaultProvider]?.[0] ?? '')
       setCompanyIds('all')
       setScheduleMinutes(60)
       setMinScore('')
@@ -163,19 +165,19 @@ function PipelineFormDialog({
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
+            <div className="grid gap-1.5 min-w-0 overflow-hidden">
               <Label>Profile</Label>
               <Select value={profileId} onValueChange={setProfileId}>
-                <SelectTrigger><SelectValue placeholder="Select profile" /></SelectTrigger>
+                <SelectTrigger className="w-full truncate"><SelectValue placeholder="Select profile" /></SelectTrigger>
                 <SelectContent>
                   {profiles.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-1.5 min-w-0 overflow-hidden">
               <Label>Template</Label>
               <Select value={templateId} onValueChange={setTemplateId}>
-                <SelectTrigger><SelectValue placeholder="Select template" /></SelectTrigger>
+                <SelectTrigger className="w-full truncate"><SelectValue placeholder="Select template" /></SelectTrigger>
                 <SelectContent>
                   {templates.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                 </SelectContent>
@@ -184,20 +186,31 @@ function PipelineFormDialog({
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
+            <div className="grid gap-1.5 min-w-0">
               <Label>AI Provider</Label>
-              <Select value={provider} onValueChange={(v) => { setProvider(v); setModel('') }}>
+              <Select value={provider} onValueChange={(v) => {
+                setProvider(v)
+                const models = PROVIDER_MODELS[v] ?? []
+                setModel(models[0] ?? '')
+              }}>
                 <SelectTrigger><SelectValue placeholder="Provider" /></SelectTrigger>
                 <SelectContent>
                   {(settings?.configuredProviders ?? []).map((p) => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                    <SelectItem key={p} value={p}>{PROVIDER_LABELS[p] ?? p}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-1.5 min-w-0">
               <Label>Model</Label>
-              <Input value={model} onChange={(e) => setModel(e.target.value)} placeholder="e.g. claude-sonnet-4-6" />
+              <Select value={model} onValueChange={setModel}>
+                <SelectTrigger><SelectValue placeholder="Select model" /></SelectTrigger>
+                <SelectContent>
+                  {(PROVIDER_MODELS[provider] ?? (model ? [model] : [])).map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -607,13 +620,11 @@ export default function PipelinePage() {
   const openEdit = (p: Pipeline) => { setEditing(p); setFormOpen(true) }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-6">
+    <div className="p-8 max-w-4xl">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2">
-            <GitBranch size={20} /> Pipeline
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h2 className="text-2xl font-bold">Pipeline</h2>
+          <p className="text-muted-foreground text-sm mt-1">
             Automatically scan companies, score jobs against your profile, and generate resumes for top matches.
           </p>
         </div>

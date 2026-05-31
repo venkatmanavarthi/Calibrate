@@ -1,7 +1,7 @@
 import type React from 'react'
 import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, User, FileText, Wand2, MessageSquareText, Settings, Menu, Briefcase, GitBranch, Building2 } from 'lucide-react'
+import { LayoutDashboard, User, FileText, Wand2, MessageSquareText, Settings, Menu, Briefcase, GitBranch, Building2, Send } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
@@ -11,6 +11,7 @@ const navItems = [
   { to: '/companies', label: 'Companies', icon: Building2 },
   { to: '/jobs', label: 'Jobs', icon: Briefcase },
   { to: '/pipeline', label: 'Pipeline', icon: GitBranch },
+  { to: '/applications', label: 'Applications', icon: Send },
   { to: '/generate', label: 'Generate', icon: Wand2 },
   { to: '/prompts', label: 'Prompts', icon: MessageSquareText },
   { to: '/settings', label: 'Settings', icon: Settings }

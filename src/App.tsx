@@ -10,6 +10,7 @@ import GeneratorPage from '@/pages/generator/GeneratorPage'
 import JobsPage from '@/pages/jobs/JobsPage'
 import CompaniesPage from '@/pages/companies/CompaniesPage'
 import PipelinePage from '@/pages/pipeline/PipelinePage'
+import ApplicationsPage from '@/pages/applications/ApplicationsPage'
 import PromptsPage from '@/pages/prompts/PromptsPage'
 import SettingsPage from '@/pages/settings/SettingsPage'
 import {
@@ -142,6 +143,7 @@ export default function App() {
         <Route path="/templates/new" element={<TemplateEditor />} />
         <Route path="/templates/:id" element={<TemplateEditor />} />
         <Route path="/pipeline" element={<PipelinePage />} />
+        <Route path="/applications" element={<ApplicationsPage />} />
         <Route path="/generate" element={<GeneratorPage />} />
         <Route path="/prompts" element={<PromptsPage />} />
         <Route path="/settings" element={<SettingsPage />} />

@@ -97,7 +97,7 @@ export interface ResumeTemplate {
   preset?: boolean
 }
 
-export type AIProvider = 'anthropic' | 'openai' | 'gemini' | 'groq' | 'lmstudio'
+export type AIProvider = 'anthropic' | 'openai' | 'gemini' | 'groq' | 'deepseek' | 'lmstudio'
 
 export interface LMStudioConfig {
   baseUrl: string
@@ -124,13 +124,16 @@ export interface AppSettings {
   lmStudioConfig: LMStudioConfig
   encryptionAvailable: boolean
   theme: 'system' | 'light' | 'dark'
-  pdfPageSize: 'Letter' | 'A4'
+  pdfPageSize: 'Letter' | 'A4' | 'Tabloid'
   pdfMarginMm: number
   pdfFont: 'Georgia' | 'Arial' | 'Helvetica' | 'Times New Roman' | 'Calibri' | 'Garamond'
   configuredProviders: AIProvider[]
   onboardingCompleted: boolean
+  jobKeywords: string[]
   customPrompts?: CustomPrompts
   promptHistory?: PromptSnapshot[]
+  gmailOAuthClientId?: string
+  gmailOAuthClientSecret?: string
 }
 
 export interface HallucinationWarning {
@@ -163,7 +166,7 @@ export interface PdfExportRequest {
   markdownContent: string
   resumeDocument?: import('./resume-document').ResumeDocument
   destFilePath: string
-  pageSize: 'Letter' | 'A4'
+  pageSize: 'Letter' | 'A4' | 'Tabloid'
   marginMm: number
   font: string
   fontSize?: number
@@ -205,7 +208,7 @@ export interface RateResumeRequest {
   model: string
 }
 
-export type JobAtsSource = 'greenhouse' | 'lever' | 'ashby'
+export type JobAtsSource = 'greenhouse' | 'lever' | 'ashby' | 'website'
 
 export interface TrackedCompany {
   id: string
@@ -278,6 +281,8 @@ export interface Pipeline {
   scheduleMinutes: number
   minScore?: number
   enabled: boolean
+  autoApply: boolean
+  autoApplyMinScore?: number
   createdAt: string
   updatedAt: string
   lastRunAt?: string
@@ -313,6 +318,98 @@ export interface ScoredJob {
   scoredAt: string
   resumeMarkdown?: string
   resumeGeneratedAt?: string
+}
+
+export interface ApplicationDefaults {
+  eeoGender?: string
+  eeoRace?: string
+  eeoVeteran?: string
+  eeoDisability?: string
+  workAuthorized: boolean
+  requiresSponsorship: boolean
+  customQuestionDefaults?: Record<string, string>
+}
+
+export interface ApplicationRecord {
+  id: string
+  scoredJobId: string
+  jobId: string
+  jobTitle: string
+  jobCompany: string
+  jobSource: JobAtsSource
+  appliedAt: string
+  status: 'submitted' | 'failed' | 'skipped'
+  failureReason?: string
+  confirmationScreenshotPath?: string
+  customAnswers: Record<string, string>
+  sourceUrl?: string
+  finalUrl?: string
+  submissionMode?: 'auto' | 'review' | 'fill_only'
+  accountEmail?: string
+  accountAction?: 'none' | 'login_existing' | 'created' | 'reset_attempted' | 'blocked'
+  verificationReason?: string
+  filledFields?: string[]
+  skippedFields?: string[]
+}
+
+export type GmailConnectionStatus = 'not_configured' | 'disconnected' | 'connected' | 'expired'
+
+export interface GmailConnection {
+  status: GmailConnectionStatus
+  email?: string
+  connectedAt?: string
+  lastVerifiedAt?: string
+  message?: string
+}
+
+export interface SiteCredential {
+  origin: string
+  email: string
+  encryptedPassword: string
+  createdAt: string
+  updatedAt: string
+  lastLoginAt?: string
+}
+
+export type ApplyRunStatus = 'queued' | 'running' | 'submitted' | 'failed' | 'cancelled' | 'blocked'
+
+export interface ApplyStep {
+  id: string
+  runId: string
+  at: string
+  action: string
+  status: 'ok' | 'failed' | 'skipped'
+  message: string
+  screenshotPath?: string
+}
+
+export interface ApplyRun {
+  id: string
+  scoredJobId?: string
+  jobId?: string
+  sourceUrl: string
+  finalUrl?: string
+  status: ApplyRunStatus
+  mode: 'auto'
+  currentStep: string
+  accountEmail?: string
+  accountAction?: ApplicationRecord['accountAction']
+  error?: string
+  startedAt: string
+  completedAt?: string
+}
+
+export interface ChromeApplyConnection {
+  connected: boolean
+  lastSeenAt?: string
+  port: number
+  extensionId?: string
+  message?: string
+}
+
+export interface ChromeApplyStartRequest {
+  scoredJobId?: string
+  url?: string
 }
 
 export interface EditElementRequest {

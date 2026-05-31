@@ -1,5 +1,14 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { WindowAPI, UpdateState, UpdateProgress, PipelineRunProgressPayload, ScoredJob } from '../../src/types/ipc'
+import type {
+  WindowAPI,
+  UpdateState,
+  UpdateProgress,
+  PipelineRunProgressPayload,
+  ChromeApplyProgressPayload,
+  ScoredJob,
+  ApplicationDefaults,
+  ChromeApplyStartRequest
+} from '../../src/types/ipc'
 
 const api: WindowAPI = {
   // Profiles
@@ -111,6 +120,36 @@ const api: WindowAPI = {
     ipcRenderer.on('pipeline:runError', handler)
     return () => ipcRenderer.removeListener('pipeline:runError', handler)
   },
+
+  // Applications
+  applicationsList: () => ipcRenderer.invoke('applications:list'),
+  applicationsDelete: (id) => ipcRenderer.invoke('applications:delete', id),
+  applicationSubmit: (scoredJobId) => ipcRenderer.invoke('applications:submit', scoredJobId),
+  applicationSubmitBatch: (scoredJobIds) => ipcRenderer.invoke('applications:submitBatch', scoredJobIds),
+
+  // Application defaults
+  applicationDefaultsGet: () => ipcRenderer.invoke('applicationDefaults:get'),
+  applicationDefaultsSave: (d: ApplicationDefaults) => ipcRenderer.invoke('applicationDefaults:save', d),
+
+  // Chrome apply
+  chromeApplyCheckConnection: () => ipcRenderer.invoke('chromeApply:checkConnection'),
+  chromeApplyStart: (req: ChromeApplyStartRequest) => ipcRenderer.invoke('chromeApply:start', req),
+  chromeApplyCancel: (sessionId) => ipcRenderer.invoke('chromeApply:cancel', sessionId),
+  chromeApplyListRuns: () => ipcRenderer.invoke('chromeApply:listRuns'),
+  onChromeApplyProgress: (cb) => {
+    const handler = (_: Electron.IpcRendererEvent, payload: ChromeApplyProgressPayload) => cb(payload)
+    ipcRenderer.on('chromeApply:progress', handler)
+    return () => ipcRenderer.removeListener('chromeApply:progress', handler)
+  },
+
+  // Gmail verification
+  gmailStatus: () => ipcRenderer.invoke('gmail:status'),
+  gmailConnect: () => ipcRenderer.invoke('gmail:connect'),
+  gmailDisconnect: () => ipcRenderer.invoke('gmail:disconnect'),
+
+  // Session auth
+  sessionAuthenticate: (atsDomain) => ipcRenderer.invoke('session:authenticate', atsDomain),
+  sessionClear: (atsDomain) => ipcRenderer.invoke('session:clear', atsDomain),
 
   // Shell
   shellOpenExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),

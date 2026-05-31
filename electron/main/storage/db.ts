@@ -115,7 +115,84 @@ function createTables(db: Database.Database): void {
 
     CREATE INDEX IF NOT EXISTS idx_scored_jobs_pipelineId ON scored_jobs(pipelineId);
     CREATE INDEX IF NOT EXISTS idx_scored_jobs_jobId      ON scored_jobs(jobId);
+
+    CREATE TABLE IF NOT EXISTS application_records (
+      id                          TEXT PRIMARY KEY,
+      scoredJobId                 TEXT NOT NULL,
+      jobId                       TEXT NOT NULL,
+      jobTitle                    TEXT NOT NULL,
+      jobCompany                  TEXT NOT NULL,
+      jobSource                   TEXT NOT NULL,
+      appliedAt                   TEXT NOT NULL,
+      status                      TEXT NOT NULL,
+      failureReason               TEXT,
+      confirmationScreenshotPath  TEXT,
+      customAnswers               TEXT NOT NULL DEFAULT '{}',
+      sourceUrl                   TEXT,
+      finalUrl                    TEXT,
+      submissionMode              TEXT,
+      accountEmail                TEXT,
+      accountAction               TEXT,
+      verificationReason          TEXT,
+      filledFields                TEXT NOT NULL DEFAULT '[]',
+      skippedFields               TEXT NOT NULL DEFAULT '[]'
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_application_records_scoredJobId ON application_records(scoredJobId);
+
+    CREATE TABLE IF NOT EXISTS apply_runs (
+      id            TEXT PRIMARY KEY,
+      scoredJobId   TEXT,
+      jobId         TEXT,
+      sourceUrl     TEXT NOT NULL,
+      finalUrl      TEXT,
+      status        TEXT NOT NULL,
+      mode          TEXT NOT NULL,
+      currentStep   TEXT NOT NULL,
+      accountEmail  TEXT,
+      accountAction TEXT,
+      error         TEXT,
+      startedAt     TEXT NOT NULL,
+      completedAt   TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_apply_runs_scoredJobId ON apply_runs(scoredJobId);
+
+    CREATE TABLE IF NOT EXISTS apply_steps (
+      id             TEXT PRIMARY KEY,
+      runId          TEXT NOT NULL,
+      at             TEXT NOT NULL,
+      action         TEXT NOT NULL,
+      status         TEXT NOT NULL,
+      message        TEXT NOT NULL,
+      screenshotPath TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_apply_steps_runId ON apply_steps(runId);
   `)
+
+  // Migrate pipelines table: add autoApply columns if not present
+  try {
+    db.exec('ALTER TABLE pipelines ADD COLUMN autoApply INTEGER NOT NULL DEFAULT 0')
+  } catch { /* column already exists */ }
+  try {
+    db.exec('ALTER TABLE pipelines ADD COLUMN autoApplyMinScore REAL')
+  } catch { /* column already exists */ }
+
+  for (const stmt of [
+    'ALTER TABLE application_records ADD COLUMN sourceUrl TEXT',
+    'ALTER TABLE application_records ADD COLUMN finalUrl TEXT',
+    'ALTER TABLE application_records ADD COLUMN submissionMode TEXT',
+    'ALTER TABLE application_records ADD COLUMN accountEmail TEXT',
+    'ALTER TABLE application_records ADD COLUMN accountAction TEXT',
+    'ALTER TABLE application_records ADD COLUMN verificationReason TEXT',
+    "ALTER TABLE application_records ADD COLUMN filledFields TEXT NOT NULL DEFAULT '[]'",
+    "ALTER TABLE application_records ADD COLUMN skippedFields TEXT NOT NULL DEFAULT '[]'"
+  ]) {
+    try {
+      db.exec(stmt)
+    } catch { /* column already exists */ }
+  }
 }
 
 async function readJsonSafe<T>(file: string, fallback: T): Promise<T> {

@@ -5,6 +5,7 @@ import { seedExampleTemplates } from './storage/seed'
 import { loadSettings } from './storage/settings.store'
 import { registerAllIpc } from './ipc/index'
 import { readCalibrateFile } from './ipc/templates.ipc'
+import { startChromeApplyBridge } from './chrome-apply/bridge'
 
 let mainWindow: BrowserWindow | null = null
 let pendingCalibrateFile: string | null = null
@@ -57,6 +58,7 @@ if (!gotLock) {
 
 async function createWindow(): Promise<void> {
   await ensureDirectories()
+  startChromeApplyBridge()
   await seedExampleTemplates()
 
   const settings = await loadSettings()

@@ -9,6 +9,7 @@ import { registerUpdatesIpc } from './updates.ipc'
 import { registerEmailIpc, registerShellIpc } from './email.ipc'
 import { registerJobsIpc } from './jobs.ipc'
 import { registerPipelineIpc } from './pipeline.ipc'
+import { registerApplicationsIpc } from './applications.ipc'
 
 export function registerAllIpc(win: BrowserWindow): void {
   registerProfilesIpc()
@@ -23,4 +24,5 @@ export function registerAllIpc(win: BrowserWindow): void {
   registerEmailIpc()
   registerJobsIpc()
   registerPipelineIpc(win)
+  registerApplicationsIpc(win)
 }

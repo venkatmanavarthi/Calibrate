@@ -19,7 +19,13 @@ import type {
   AtsProbeResult,
   Pipeline,
   PipelineRun,
-  ScoredJob
+  ScoredJob,
+  ApplicationRecord,
+  ApplicationDefaults,
+  GmailConnection,
+  ChromeApplyConnection,
+  ChromeApplyStartRequest,
+  ApplyRun
 } from './models'
 import type { ResumeDocument } from './resume-document'
 
@@ -45,6 +51,13 @@ export type PipelineRunProgressPayload = {
   phase: 'scanning' | 'scoring'
   current: number
   total: number
+}
+
+export type ChromeApplyProgressPayload = {
+  runId: string
+  status: ApplyRun['status']
+  currentStep: string
+  message?: string
 }
 
 export interface WindowAPI {
@@ -121,6 +134,32 @@ export interface WindowAPI {
   onPipelineRunCompleted: (cb: (payload: { pipelineId: string; runId: string; scoredJobs: ScoredJob[] }) => void) => () => void
   onPipelineRunError: (cb: (payload: { pipelineId: string; runId: string; error: string }) => void) => () => void
 
+  // Applications
+  applicationsList: () => Promise<ApplicationRecord[]>
+  applicationsDelete: (id: string) => Promise<{ ok: true }>
+  applicationSubmit: (scoredJobId: string) => Promise<ApplicationRecord>
+  applicationSubmitBatch: (scoredJobIds: string[]) => Promise<ApplicationRecord[]>
+
+  // Application defaults
+  applicationDefaultsGet: () => Promise<ApplicationDefaults>
+  applicationDefaultsSave: (d: ApplicationDefaults) => Promise<{ ok: true }>
+
+  // Chrome apply
+  chromeApplyCheckConnection: () => Promise<ChromeApplyConnection>
+  chromeApplyStart: (req: ChromeApplyStartRequest) => Promise<ApplyRun>
+  chromeApplyCancel: (sessionId: string) => Promise<{ ok: true }>
+  chromeApplyListRuns: () => Promise<ApplyRun[]>
+  onChromeApplyProgress: (cb: (payload: ChromeApplyProgressPayload) => void) => () => void
+
+  // Gmail verification
+  gmailStatus: () => Promise<GmailConnection>
+  gmailConnect: () => Promise<GmailConnection>
+  gmailDisconnect: () => Promise<{ ok: true }>
+
+  // Session auth (opens BrowserWindow for user to log in to an ATS domain)
+  sessionAuthenticate: (atsDomain: string) => Promise<void>
+  sessionClear: (atsDomain: string) => Promise<{ ok: true }>
+
   // Shell
   shellOpenExternal: (url: string) => Promise<void>
 
@@ -162,6 +201,11 @@ export type {
   AtsProbeResult,
   Pipeline,
   PipelineRun,
-  ScoredJob
+  ScoredJob,
+  ApplicationRecord,
+  ApplicationDefaults,
+  GmailConnection,
+  ChromeApplyConnection,
+  ChromeApplyStartRequest,
+  ApplyRun
 }
-

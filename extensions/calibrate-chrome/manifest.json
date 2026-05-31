@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Calibrate Chrome Apply",
+  "version": "0.1.0",
+  "description": "Lets Calibrate fill job applications in your Chrome tabs.",
+  "permissions": ["tabs", "scripting", "activeTab", "debugger", "alarms"],
+  "host_permissions": ["<all_urls>", "http://127.0.0.1:17654/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Calibrate Apply"
+  }
+}

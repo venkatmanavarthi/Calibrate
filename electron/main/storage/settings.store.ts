@@ -10,6 +10,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     openai: 'gpt-4o',
     gemini: 'gemini-1.5-pro',
     groq: 'llama3-70b-8192',
+    deepseek: 'deepseek-v4-flash',
     lmstudio: 'local-model'
   },
   lmStudioConfig: {
@@ -22,7 +23,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   pdfMarginMm: 15,
   pdfFont: 'Georgia',
   configuredProviders: [],
-  onboardingCompleted: false
+  onboardingCompleted: false,
+  jobKeywords: []
 }
 
 export async function loadSettings(): Promise<AppSettings> {
@@ -32,6 +34,10 @@ export async function loadSettings(): Promise<AppSettings> {
     return {
       ...DEFAULT_SETTINGS,
       ...stored,
+      preferredModels: {
+        ...DEFAULT_SETTINGS.preferredModels,
+        ...(stored.preferredModels ?? {})
+      },
       encryptionAvailable: safeStorage.isEncryptionAvailable()
     }
   } catch {

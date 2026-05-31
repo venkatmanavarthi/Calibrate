@@ -9,6 +9,7 @@ import { useTemplatesStore } from '@/stores/templates.store'
 import { useSettingsStore } from '@/stores/settings.store'
 import { useGeneratorStore } from '@/stores/generator.store'
 import { PROVIDER_LABELS, PROVIDER_MODELS } from '@/lib/ai-providers'
+import type { AIProvider } from '@/types/models'
 
 interface Props {
   onGenerate: () => void
@@ -98,8 +99,9 @@ export default function JobInputPane({ onGenerate, onCancel }: Props) {
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Provider</Label>
                 <Select value={activeProvider} onValueChange={(v) => {
-                  setProvider(v as typeof activeProvider)
-                  const models = PROVIDER_MODELS[v] ?? []
+                  const provider = v as AIProvider
+                  setProvider(provider)
+                  const models = PROVIDER_MODELS[provider] ?? []
                   if (models.length > 0) setModel(models[0])
                 }}>
                   <SelectTrigger>

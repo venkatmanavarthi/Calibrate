@@ -20,7 +20,17 @@ export async function buildProvider(provider: AIProvider, settings: AppSettings)
         'groq',
         ['llama3-70b-8192', 'llama3-8b-8192', 'mixtral-8x7b-32768'],
         key ?? '',
-        'https://api.groq.com/openai/v1'
+        'https://api.groq.com/openai/v1',
+        { visionEnabled: false, useMaxCompletionTokens: false }
+      )
+
+    case 'deepseek':
+      return new OpenAICompatibleProvider(
+        'deepseek',
+        ['deepseek-v4-flash', 'deepseek-v4-pro'],
+        key ?? '',
+        'https://api.deepseek.com',
+        { visionEnabled: false, useMaxCompletionTokens: false }
       )
 
     case 'lmstudio':
@@ -28,7 +38,8 @@ export async function buildProvider(provider: AIProvider, settings: AppSettings)
         'lmstudio',
         [settings.lmStudioConfig.modelName],
         '',
-        settings.lmStudioConfig.baseUrl
+        settings.lmStudioConfig.baseUrl,
+        { visionEnabled: false, useMaxCompletionTokens: false }
       )
 
     case 'gemini':

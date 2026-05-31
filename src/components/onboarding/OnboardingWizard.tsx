@@ -14,6 +14,7 @@ const PROVIDERS: { id: AIProvider; label: string; needsKey: boolean }[] = [
   { id: 'openai', label: 'OpenAI (GPT)', needsKey: true },
   { id: 'gemini', label: 'Google (Gemini)', needsKey: true },
   { id: 'groq', label: 'Groq', needsKey: true },
+  { id: 'deepseek', label: 'DeepSeek', needsKey: true },
   { id: 'lmstudio', label: 'LM Studio (local, no key needed)', needsKey: false }
 ]
 
@@ -57,7 +58,7 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
           <div className="w-4 h-4 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0 mt-0.5">
             <div className="w-1.5 h-1.5 rounded-full bg-primary" />
           </div>
-          <p className="text-sm">An API key from Anthropic, OpenAI, Gemini, or Groq — or a local LM Studio server</p>
+          <p className="text-sm">An API key from Anthropic, OpenAI, Gemini, Groq, or DeepSeek — or a local LM Studio server</p>
         </div>
         <div className="flex items-start gap-2.5">
           <div className="w-4 h-4 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0 mt-0.5">

@@ -25,13 +25,15 @@ import type { JobAtsSource, TrackedCompany, YCCompany, AtsProbeResult } from '@/
 const SOURCE_LABEL: Record<JobAtsSource, string> = {
   greenhouse: 'Greenhouse',
   lever: 'Lever',
-  ashby: 'Ashby'
+  ashby: 'Ashby',
+  website: 'Website'
 }
 
 const SOURCE_HINTS: Record<JobAtsSource, string> = {
   greenhouse: 'e.g. "stripe" from boards.greenhouse.io/stripe',
   lever: 'e.g. "netflix" from jobs.lever.co/netflix',
-  ashby: 'e.g. "ramp" from jobs.ashbyhq.com/ramp'
+  ashby: 'e.g. "ramp" from jobs.ashbyhq.com/ramp',
+  website: 'e.g. "https://stripe.com" or "stripe.com/careers"'
 }
 
 function AddCompanyDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -78,7 +80,7 @@ function AddCompanyDialog({ open, onClose }: { open: boolean; onClose: () => voi
         <DialogHeader>
           <DialogTitle>Track a company</DialogTitle>
           <DialogDescription>
-            Add a company by its public job board slug. We'll fetch open roles directly from their ATS — no auth, no scraping.
+            Add a company by ATS slug or website URL. Website sources use the Chrome extension to find open roles.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 mt-2">
@@ -92,23 +94,24 @@ function AddCompanyDialog({ open, onClose }: { open: boolean; onClose: () => voi
             />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="company-source">ATS</Label>
+            <Label htmlFor="company-source">Source</Label>
             <Select value={source} onValueChange={(v) => setSource(v as JobAtsSource)}>
               <SelectTrigger id="company-source"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="greenhouse">Greenhouse</SelectItem>
                 <SelectItem value="lever">Lever</SelectItem>
                 <SelectItem value="ashby">Ashby</SelectItem>
+                <SelectItem value="website">Website via Chrome</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="company-slug">Board slug</Label>
+            <Label htmlFor="company-slug">{source === 'website' ? 'Website URL' : 'Board slug'}</Label>
             <Input
               id="company-slug"
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
-              placeholder="stripe"
+              placeholder={source === 'website' ? 'https://company.com/careers' : 'stripe'}
             />
             <p className="text-xs text-muted-foreground">{SOURCE_HINTS[source]}</p>
           </div>
@@ -339,7 +342,7 @@ export default function CompaniesPage() {
         <div>
           <h2 className="text-2xl font-bold">Companies</h2>
           <p className="text-muted-foreground text-sm mt-1">
-            Track companies and pull open roles from their ATS job boards.
+            Track companies and pull open roles from ATS job boards or a website searched in Chrome.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -367,7 +370,7 @@ export default function CompaniesPage() {
           <Building2 size={28} className="mx-auto text-muted-foreground/60" />
           <p className="text-sm mt-3 font-medium">No companies tracked yet</p>
           <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-            Add a company by its Greenhouse, Lever, or Ashby slug to start pulling open roles.
+            Add a company by its Greenhouse, Lever, Ashby slug, or a website URL to start pulling open roles.
           </p>
           <div className="flex items-center justify-center gap-2 mt-4">
             <Button variant="outline" onClick={() => setBrowseYCOpen(true)}>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ExternalLink, Wand2, Search, Building2 } from 'lucide-react'
+import { ExternalLink, Wand2, Search, Building2, RefreshCw, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -12,13 +12,15 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { useJobsStore } from '@/stores/jobs.store'
+import { useSettingsStore } from '@/stores/settings.store'
 import { useGeneratorStore } from '@/stores/generator.store'
 import type { JobAtsSource, NormalizedJob } from '@/types/models'
 
 const SOURCE_LABEL: Record<JobAtsSource, string> = {
   greenhouse: 'Greenhouse',
   lever: 'Lever',
-  ashby: 'Ashby'
+  ashby: 'Ashby',
+  website: 'Website'
 }
 
 function stripHtml(html: string): string {
@@ -72,9 +74,14 @@ const PAGE_SIZE = 25
 
 export default function JobsPage() {
   const navigate = useNavigate()
-  const { companies, jobs, load } = useJobsStore()
+  const { companies, jobs, load, refreshCompany, refreshing, lastRefresh } = useJobsStore()
+  const settings = useSettingsStore((s) => s.settings)
+  const saveSettings = useSettingsStore((s) => s.save)
   const setJobDescription = useGeneratorStore((s) => s.setJobDescription)
+  const [selectedCompanyId, setSelectedCompanyId] = useState('')
+  const [pulledCompanyId, setPulledCompanyId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
+  const [keywordInput, setKeywordInput] = useState('')
   const [remoteOnly, setRemoteOnly] = useState(false)
   const [postedWithin, setPostedWithin] = useState<string>('any')
   const [locationFilter, setLocationFilter] = useState('all')
@@ -84,16 +91,37 @@ export default function JobsPage() {
 
   useEffect(() => { load() }, [load])
 
+  const keywords = useMemo(() => settings?.jobKeywords ?? [], [settings])
+
+  const addKeyword = useCallback(() => {
+    const kw = keywordInput.trim().toLowerCase()
+    if (!kw || keywords.includes(kw)) { setKeywordInput(''); return }
+    saveSettings({ jobKeywords: [...keywords, kw] })
+    setKeywordInput('')
+    resetPage()
+  }, [keywordInput, keywords, saveSettings, resetPage])
+
+  const removeKeyword = useCallback((kw: string) => {
+    saveSettings({ jobKeywords: keywords.filter((k) => k !== kw) })
+    resetPage()
+  }, [keywords, saveSettings, resetPage])
+
+  // Only consider jobs belonging to the company that was last pulled.
+  const companyJobs = useMemo(
+    () => (pulledCompanyId ? jobs.filter((j) => j.companyId === pulledCompanyId) : []),
+    [jobs, pulledCompanyId]
+  )
+
   const locations = useMemo(() => {
     const seen = new Set<string>()
-    jobs.forEach((j) => { if (j.location) seen.add(j.location) })
+    companyJobs.forEach((j) => { if (j.location) seen.add(j.location) })
     return ['all', ...Array.from(seen).sort()]
-  }, [jobs])
+  }, [companyJobs])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     const maxDays = postedWithin === 'any' ? null : parseInt(postedWithin, 10)
-    return jobs
+    return companyJobs
       .filter((j) => {
         if (remoteOnly && !j.remote) return false
         if (locationFilter !== 'all' && j.location !== locationFilter) return false
@@ -101,16 +129,31 @@ export default function JobsPage() {
           const age = daysSince(j.postedAt || j.firstSeenAt)
           if (age === null || age > maxDays) return false
         }
-        if (!q) return true
         const hay = `${j.title} ${j.company} ${j.location} ${j.department ?? ''}`.toLowerCase()
+        // Keywords: keep a job if it matches at least one (match ANY).
+        if (keywords.length > 0 && !keywords.some((kw) => hay.includes(kw))) return false
+        if (!q) return true
         return hay.includes(q)
       })
       .sort((a, b) => (b.postedAt || b.firstSeenAt).localeCompare(a.postedAt || a.firstSeenAt))
-  }, [jobs, query, remoteOnly, postedWithin, locationFilter])
+  }, [companyJobs, query, keywords, remoteOnly, postedWithin, locationFilter])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages)
   const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+
+  const addedCount = useMemo(
+    () => (lastRefresh ? lastRefresh.reduce((sum, r) => sum + r.added, 0) : null),
+    [lastRefresh]
+  )
+
+  const handlePull = async () => {
+    if (!selectedCompanyId) return
+    await refreshCompany(selectedCompanyId)
+    setPulledCompanyId(selectedCompanyId)
+    setLocationFilter('all')
+    setPage(1)
+  }
 
   const handleGenerate = (job: NormalizedJob) => {
     const header = `${job.title} @ ${job.company}\n${job.location}${job.remote ? ' (Remote)' : ''}\n${job.applyUrl}\n\n`
@@ -120,13 +163,11 @@ export default function JobsPage() {
 
   return (
     <div className="p-8 max-w-4xl">
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-2xl font-bold">Jobs</h2>
-          <p className="text-muted-foreground text-sm mt-1">
-            Browse open roles from your tracked companies.
-          </p>
-        </div>
+      <div className="mb-5">
+        <h2 className="text-2xl font-bold">Jobs</h2>
+        <p className="text-muted-foreground text-sm mt-1">
+          Select a company and pull its latest open roles.
+        </p>
       </div>
 
       {companies.length === 0 ? (
@@ -142,6 +183,71 @@ export default function JobsPage() {
         </div>
       ) : (
         <>
+          <div className="flex items-center gap-2 mb-3">
+            <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Select a company…" />
+              </SelectTrigger>
+              <SelectContent>
+                {companies.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name} <span className="text-muted-foreground">· {SOURCE_LABEL[c.source]}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={handlePull} disabled={refreshing || !selectedCompanyId}>
+              <RefreshCw size={14} className={`mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Pulling…' : 'Pull'}
+            </Button>
+            {!refreshing && addedCount !== null && (
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                {addedCount === 0 ? 'No new jobs' : `${addedCount} new job${addedCount === 1 ? '' : 's'}`}
+              </span>
+            )}
+          </div>
+
+          <div className="mb-4">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={keywordInput}
+                  onChange={(e) => setKeywordInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addKeyword() } }}
+                  placeholder="Add a keyword to filter roles (e.g. frontend, react)…"
+                  className="pl-8"
+                />
+              </div>
+              <Button variant="outline" onClick={addKeyword} disabled={!keywordInput.trim()}>
+                Add keyword
+              </Button>
+            </div>
+            {keywords.length > 0 && (
+              <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                {keywords.map((kw) => (
+                  <Badge key={kw} variant="secondary" className="gap-1 pr-1">
+                    {kw}
+                    <button
+                      onClick={() => removeKeyword(kw)}
+                      className="rounded-sm hover:bg-foreground/10 p-0.5"
+                      aria-label={`Remove ${kw}`}
+                    >
+                      <X size={11} />
+                    </button>
+                  </Badge>
+                ))}
+                <span className="text-xs text-muted-foreground ml-1">matches any</span>
+              </div>
+            )}
+          </div>
+
+          {pulledCompanyId === null ? (
+            <div className="text-sm text-muted-foreground text-center py-10">
+              Select a company above and click Pull to load its open roles.
+            </div>
+          ) : (
+          <>
           <div className="flex items-center gap-2 mb-3">
             <div className="relative flex-1">
               <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -180,14 +286,14 @@ export default function JobsPage() {
           </div>
 
           <p className="text-xs text-muted-foreground mb-2">
-            {filtered.length} of {jobs.length} jobs
+            {filtered.length} of {companyJobs.length} jobs
           </p>
 
           <div className="space-y-2">
             {filtered.length === 0 ? (
               <div className="text-sm text-muted-foreground text-center py-8">
-                {jobs.length === 0
-                  ? 'No jobs cached yet — go to Companies and click "Refresh all".'
+                {companyJobs.length === 0
+                  ? 'No open roles found for this company.'
                   : 'No jobs match your filters.'}
               </div>
             ) : (
@@ -217,6 +323,8 @@ export default function JobsPage() {
                 Next
               </Button>
             </div>
+          )}
+          </>
           )}
         </>
       )}

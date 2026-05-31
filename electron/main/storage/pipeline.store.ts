@@ -12,6 +12,8 @@ type PipelineRow = {
   scheduleMinutes: number
   minScore: number | null
   enabled: number
+  autoApply: number
+  autoApplyMinScore: number | null
   createdAt: string
   updatedAt: string
   lastRunAt: string | null
@@ -54,6 +56,8 @@ function rowToPipeline(row: PipelineRow): Pipeline {
     companyIds: JSON.parse(row.companyIds) as string[] | 'all',
     minScore: row.minScore ?? undefined,
     enabled: row.enabled === 1,
+    autoApply: row.autoApply === 1,
+    autoApplyMinScore: row.autoApplyMinScore ?? undefined,
     lastRunAt: row.lastRunAt ?? undefined
   }
 }
@@ -91,26 +95,30 @@ export async function savePipeline(pipeline: Pipeline): Promise<void> {
     .prepare(`
       INSERT INTO pipelines
         (id, name, profileId, templateId, provider, model, companyIds, scheduleMinutes,
-         minScore, enabled, createdAt, updatedAt, lastRunAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         minScore, enabled, autoApply, autoApplyMinScore, createdAt, updatedAt, lastRunAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
-        name            = excluded.name,
-        profileId       = excluded.profileId,
-        templateId      = excluded.templateId,
-        provider        = excluded.provider,
-        model           = excluded.model,
-        companyIds      = excluded.companyIds,
-        scheduleMinutes = excluded.scheduleMinutes,
-        minScore        = excluded.minScore,
-        enabled         = excluded.enabled,
-        updatedAt       = excluded.updatedAt,
-        lastRunAt       = excluded.lastRunAt
+        name              = excluded.name,
+        profileId         = excluded.profileId,
+        templateId        = excluded.templateId,
+        provider          = excluded.provider,
+        model             = excluded.model,
+        companyIds        = excluded.companyIds,
+        scheduleMinutes   = excluded.scheduleMinutes,
+        minScore          = excluded.minScore,
+        enabled           = excluded.enabled,
+        autoApply         = excluded.autoApply,
+        autoApplyMinScore = excluded.autoApplyMinScore,
+        updatedAt         = excluded.updatedAt,
+        lastRunAt         = excluded.lastRunAt
     `)
     .run(
       pipeline.id, pipeline.name, pipeline.profileId, pipeline.templateId,
       pipeline.provider, pipeline.model, JSON.stringify(pipeline.companyIds),
       pipeline.scheduleMinutes, pipeline.minScore ?? null,
       pipeline.enabled ? 1 : 0,
+      pipeline.autoApply ? 1 : 0,
+      pipeline.autoApplyMinScore ?? null,
       pipeline.createdAt, pipeline.updatedAt, pipeline.lastRunAt ?? null
     )
 }

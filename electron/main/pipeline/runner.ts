@@ -7,10 +7,12 @@ import { getTemplate } from '../storage/templates.store'
 import { listCompanies, listJobs } from '../storage/jobs.store'
 import {
   saveRun,
+  saveScoredJob,
   saveScoredJobs,
   isJobAlreadyScored,
   updatePipelineLastRun
 } from '../storage/pipeline.store'
+import { startChromeApply } from '../chrome-apply/index'
 import { scoreJob } from './scorer'
 import { buildGenerationMessages } from '../ai/prompts/generate'
 import type { Pipeline, PipelineRun, ScoredJob } from '../../../src/types/models'
@@ -125,6 +127,28 @@ export async function runPipeline(pipeline: Pipeline, win: BrowserWindow): Promi
 
     await saveScoredJobs(newScoredJobs)
 
+    // Auto-apply: if enabled, generate resume then submit for each qualifying scored job
+    if (pipeline.autoApply && newScoredJobs.length > 0) {
+      const applyThreshold = pipeline.autoApplyMinScore ?? pipeline.minScore ?? 7
+      const toApply = newScoredJobs.filter((j) => j.score >= applyThreshold)
+      for (const job of toApply) {
+        try {
+          // Generate resume first
+          const markdown = await generateResumeForScoredJob(job, pipeline)
+          const withResume: ScoredJob = {
+            ...job,
+            resumeMarkdown: markdown,
+            resumeGeneratedAt: nowIso()
+          }
+          await saveScoredJob(withResume)
+          // Submit application
+          await startChromeApply({ scoredJobId: job.id }, win)
+        } catch {
+          // Non-fatal — log and continue to next job
+        }
+      }
+    }
+
     run.status = 'completed'
     run.completedAt = nowIso()
     run.jobsScored = newScoredJobs.length
@@ -141,6 +165,7 @@ export async function runPipeline(pipeline: Pipeline, win: BrowserWindow): Promi
     run.completedAt = nowIso()
     run.error = (err as Error).message
     await saveRun(run)
+    await updatePipelineLastRun(pipeline.id, run.completedAt)
 
     win.webContents.send('pipeline:runError', {
       pipelineId: pipeline.id,

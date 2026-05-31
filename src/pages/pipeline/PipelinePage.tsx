@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   GitBranch, Plus, Play, Trash2, ExternalLink, Wand2,
-  CheckSquare, Square, Clock, ChevronDown, ChevronRight, AlertCircle, Loader2
+  CheckSquare, Square, Clock, ChevronDown, ChevronRight, AlertCircle, Loader2, Send
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,6 +15,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
 } from '@/components/ui/dialog'
 import { usePipelineStore } from '@/stores/pipeline.store'
+import { useApplicationsStore } from '@/stores/applications.store'
 import { useJobsStore } from '@/stores/jobs.store'
 import { useProfilesStore } from '@/stores/profiles.store'
 import { useTemplatesStore } from '@/stores/templates.store'
@@ -22,7 +23,7 @@ import { useSettingsStore } from '@/stores/settings.store'
 import { useGeneratorStore } from '@/stores/generator.store'
 import { generateId, now } from '@/lib/utils'
 import { PROVIDER_LABELS, PROVIDER_MODELS } from '@/lib/ai-providers'
-import type { Pipeline, ScoredJob } from '@/types/models'
+import type { Pipeline, ScoredJob, AIProvider } from '@/types/models'
 
 const SCHEDULE_OPTIONS = [
   { label: 'Every 30 min', value: 30 },
@@ -80,6 +81,8 @@ function PipelineFormDialog({
   const [scheduleMinutes, setScheduleMinutes] = useState(60)
   const [minScore, setMinScore] = useState<string>('')
   const [enabled, setEnabled] = useState(true)
+  const [autoApply, setAutoApply] = useState(false)
+  const [autoApplyMinScore, setAutoApplyMinScore] = useState<string>('')
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -94,6 +97,8 @@ function PipelineFormDialog({
       setScheduleMinutes(initial.scheduleMinutes)
       setMinScore(initial.minScore != null ? String(initial.minScore) : '')
       setEnabled(initial.enabled)
+      setAutoApply(initial.autoApply ?? false)
+      setAutoApplyMinScore(initial.autoApplyMinScore != null ? String(initial.autoApplyMinScore) : '')
     } else {
       setName('')
       setProfileId(profiles[0]?.id ?? '')
@@ -105,6 +110,8 @@ function PipelineFormDialog({
       setScheduleMinutes(60)
       setMinScore('')
       setEnabled(true)
+      setAutoApply(false)
+      setAutoApplyMinScore('')
     }
   }, [open, initial, profiles, templates, settings])
 
@@ -112,6 +119,7 @@ function PipelineFormDialog({
     if (!name.trim() || !profileId || !templateId || !provider || !model) return
     setBusy(true)
     const parsed = parseInt(minScore, 10)
+    const parsedAutoApplyMin = parseInt(autoApplyMinScore, 10)
     const pipeline: Pipeline = {
       id: initial?.id ?? generateId(),
       name: name.trim(),
@@ -123,6 +131,10 @@ function PipelineFormDialog({
       scheduleMinutes,
       minScore: !isNaN(parsed) && parsed >= 1 && parsed <= 10 ? parsed : undefined,
       enabled,
+      autoApply,
+      autoApplyMinScore: !isNaN(parsedAutoApplyMin) && parsedAutoApplyMin >= 1 && parsedAutoApplyMin <= 10
+        ? parsedAutoApplyMin
+        : undefined,
       createdAt: initial?.createdAt ?? now(),
       updatedAt: now(),
       lastRunAt: initial?.lastRunAt
@@ -190,7 +202,7 @@ function PipelineFormDialog({
               <Label>AI Provider</Label>
               <Select value={provider} onValueChange={(v) => {
                 setProvider(v)
-                const models = PROVIDER_MODELS[v] ?? []
+                const models = PROVIDER_MODELS[v as AIProvider] ?? []
                 setModel(models[0] ?? '')
               }}>
                 <SelectTrigger><SelectValue placeholder="Provider" /></SelectTrigger>
@@ -208,7 +220,7 @@ function PipelineFormDialog({
               <Select value={model} onValueChange={setModel}>
                 <SelectTrigger><SelectValue placeholder="Select model" /></SelectTrigger>
                 <SelectContent>
-                  {(PROVIDER_MODELS[provider] ?? (model ? [model] : [])).map((m) => (
+                  {(PROVIDER_MODELS[provider as AIProvider] ?? (model ? [model] : [])).map((m: string) => (
                     <SelectItem key={m} value={m}>{m}</SelectItem>
                   ))}
                 </SelectContent>
@@ -271,6 +283,30 @@ function PipelineFormDialog({
             </div>
           </div>
 
+          <div className="border rounded-md p-3 space-y-3">
+            <label className="flex items-center gap-2 text-sm cursor-pointer font-medium">
+              <input type="checkbox" checked={autoApply} onChange={(e) => setAutoApply(e.target.checked)} />
+              Auto-apply to matching jobs
+            </label>
+            {autoApply && (
+              <div className="grid gap-1.5 pl-5">
+                <Label className="text-xs">Min score to auto-submit (optional)</Label>
+                <Input
+                  value={autoApplyMinScore}
+                  onChange={(e) => setAutoApplyMinScore(e.target.value)}
+                  placeholder="e.g. 8"
+                  type="number"
+                  min={1}
+                  max={10}
+                  className="h-8 text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Defaults to the scoring threshold above. Requires resume to be generated first.
+                </p>
+              </div>
+            )}
+          </div>
+
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
             Enabled (runs on schedule)
@@ -328,13 +364,17 @@ function ScoredJobRow({
   selected,
   onToggle,
   generating,
-  onViewResume
+  submitting,
+  onViewResume,
+  onSubmit
 }: {
   job: ScoredJob
   selected: boolean
   onToggle: () => void
   generating: boolean
+  submitting: boolean
   onViewResume: (job: ScoredJob) => void
+  onSubmit: (job: ScoredJob) => void
 }) {
   return (
     <div className="flex items-start gap-3 px-3 py-2.5 border-b border-border last:border-0 hover:bg-accent/20">
@@ -369,6 +409,18 @@ function ScoredJobRow({
             <Wand2 size={13} />
           </Button>
         )}
+        {job.resumeMarkdown && (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={submitting}
+            onClick={() => onSubmit(job)}
+            title="Submit application"
+            className="text-muted-foreground hover:text-foreground"
+          >
+            {submitting ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+          </Button>
+        )}
         <Button variant="ghost" size="sm" onClick={() => window.api.shellOpenExternal(job.jobApplyUrl)}>
           <ExternalLink size={13} />
         </Button>
@@ -390,6 +442,7 @@ function PipelineCard({
   onDelete: (id: string) => void
 }) {
   const { runs, scoredJobs, activeRuns, generatingIds, runNow, generateResumes } = usePipelineStore()
+  const { submittingIds, submit: submitApplication, submitBatch } = useApplicationsStore()
   const navigate = useNavigate()
   const setJobDescription = useGeneratorStore((s) => s.setJobDescription)
 
@@ -438,6 +491,13 @@ function PipelineCard({
     const ids = [...selectedIds]
     if (!ids.length) return
     await generateResumes(pipeline.id, ids)
+    setSelectedIds(new Set())
+  }
+
+  const handleSubmitSelected = async () => {
+    const ids = [...selectedIds]
+    if (!ids.length) return
+    await submitBatch(ids)
     setSelectedIds(new Set())
   }
 
@@ -542,15 +602,29 @@ function PipelineCard({
                 </Button>
               )}
               {selectedIds.size > 0 && (
-                <Button
-                  size="sm"
-                  className="h-6 text-xs"
-                  onClick={handleGenerate}
-                  disabled={[...selectedIds].some((id) => generatingIds.has(id))}
-                >
-                  <Wand2 size={11} className="mr-1" />
-                  Generate {selectedIds.size} resume{selectedIds.size !== 1 ? 's' : ''}
-                </Button>
+                <>
+                  <Button
+                    size="sm"
+                    className="h-6 text-xs"
+                    onClick={handleGenerate}
+                    disabled={[...selectedIds].some((id) => generatingIds.has(id))}
+                  >
+                    <Wand2 size={11} className="mr-1" />
+                    Generate {selectedIds.size}
+                  </Button>
+                  {[...selectedIds].every((id) => filteredJobs.find((j) => j.id === id)?.resumeMarkdown) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 text-xs"
+                      onClick={handleSubmitSelected}
+                      disabled={[...selectedIds].some((id) => submittingIds.has(id))}
+                    >
+                      <Send size={11} className="mr-1" />
+                      Submit {selectedIds.size}
+                    </Button>
+                  )}
+                </>
               )}
             </div>
 
@@ -569,7 +643,9 @@ function PipelineCard({
                     selected={selectedIds.has(job.id)}
                     onToggle={() => toggleJob(job.id)}
                     generating={generatingIds.has(job.id)}
+                    submitting={submittingIds.has(job.id)}
                     onViewResume={setViewingJob}
+                    onSubmit={(j) => submitApplication(j.id)}
                   />
                 ))}
               </div>

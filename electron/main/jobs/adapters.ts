@@ -1,3 +1,5 @@
+import { createHash } from 'crypto'
+import { sendChromeCommand } from '../chrome-apply/bridge'
 import type { JobAtsSource, NormalizedJob, TrackedCompany } from '../../../src/types/models'
 
 const REMOTE_PATTERNS = /\b(remote|anywhere|work from home|wfh|distributed)\b/i
@@ -27,6 +29,25 @@ async function fetchJson<T>(url: string): Promise<T> {
   })
   if (!res.ok) throw new Error(`${url} responded ${res.status}`)
   return (await res.json()) as T
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function normalizeWebsiteUrl(value: string): string {
+  const trimmed = value.trim()
+  if (!trimmed) throw new Error('Website URL is required')
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+}
+
+function stableExternalId(url: string): string {
+  return createHash('sha1').update(url).digest('hex')
 }
 
 // ---------- Greenhouse ----------
@@ -168,6 +189,73 @@ async function fetchAshby(company: TrackedCompany): Promise<NormalizedJob[]> {
   })
 }
 
+// ---------- Website via Chrome extension ----------
+interface ChromeDiscoveredJob {
+  title: string
+  url: string
+  location?: string
+  department?: string
+  descriptionText?: string
+}
+
+interface ChromeDiscoveryResult {
+  jobs: ChromeDiscoveredJob[]
+}
+
+function descriptionToHtml(job: ChromeDiscoveredJob): string {
+  const parts = [
+    `<p><strong>${escapeHtml(job.title)}</strong></p>`,
+    job.location ? `<p>${escapeHtml(job.location)}</p>` : '',
+    `<p><a href="${escapeHtml(job.url)}">${escapeHtml(job.url)}</a></p>`,
+    ...(job.descriptionText ?? '')
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .slice(0, 25)
+      .map((p) => `<p>${escapeHtml(p)}</p>`)
+  ]
+  return parts.filter(Boolean).join('\n')
+}
+
+async function fetchWebsite(company: TrackedCompany): Promise<NormalizedJob[]> {
+  const url = normalizeWebsiteUrl(company.slug)
+  const result = await sendChromeCommand<ChromeDiscoveryResult>('discoverJobs', {
+    url,
+    companyName: company.name,
+    limit: 25
+  })
+  const seen = new Set<string>()
+  return (result.jobs ?? [])
+    .filter((job) => {
+      if (!job.url || !job.title) return false
+      const key = job.url.replace(/#.*$/, '')
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .map((job) => {
+      const externalId = stableExternalId(job.url)
+      const location = job.location ?? ''
+      return {
+        id: `website:${externalId}`,
+        source: 'website',
+        externalId,
+        company: company.name,
+        companyId: company.id,
+        title: job.title,
+        location,
+        remote: isRemote(location, job.title, job.descriptionText),
+        department: job.department,
+        descriptionHtml: descriptionToHtml(job),
+        applyUrl: job.url,
+        postedAt: '',
+        updatedAt: nowIso(),
+        firstSeenAt: nowIso(),
+        lastSeenAt: nowIso()
+      }
+    })
+}
+
 export async function fetchCompanyJobs(company: TrackedCompany): Promise<NormalizedJob[]> {
   switch (company.source) {
     case 'greenhouse':
@@ -176,9 +264,14 @@ export async function fetchCompanyJobs(company: TrackedCompany): Promise<Normali
       return fetchLever(company)
     case 'ashby':
       return fetchAshby(company)
+    case 'website':
+      return fetchWebsite(company)
   }
 }
 
 export function adapterDisplayName(source: JobAtsSource): string {
-  return source === 'greenhouse' ? 'Greenhouse' : source === 'lever' ? 'Lever' : 'Ashby'
+  if (source === 'greenhouse') return 'Greenhouse'
+  if (source === 'lever') return 'Lever'
+  if (source === 'ashby') return 'Ashby'
+  return 'Website'
 }

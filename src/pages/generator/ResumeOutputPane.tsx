@@ -88,6 +88,7 @@ export default function ResumeOutputPane() {
         font: settings.pdfFont,
         fontSize: Math.round(fontSize / 1.333),
         lineHeight,
+        textAlign,
         paddingTopMm: padTop,
         paddingRightMm: padRight,
         paddingBottomMm: padBottom,
@@ -295,7 +296,7 @@ export default function ResumeOutputPane() {
 
             <Select
               value={settings.pdfPageSize}
-              onValueChange={(v) => save({ pdfPageSize: v as 'Letter' | 'A4' })}
+              onValueChange={(v) => save({ pdfPageSize: v as 'Letter' | 'A4' | 'Tabloid' })}
             >
               <SelectTrigger className="h-7 text-xs w-[80px]">
                 <SelectValue />
@@ -303,6 +304,7 @@ export default function ResumeOutputPane() {
               <SelectContent>
                 <SelectItem value="Letter">Letter</SelectItem>
                 <SelectItem value="A4">A4</SelectItem>
+                <SelectItem value="Tabloid">Tabloid</SelectItem>
               </SelectContent>
             </Select>
 

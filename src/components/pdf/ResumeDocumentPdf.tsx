@@ -8,6 +8,7 @@ import {
   Link,
   StyleSheet,
 } from '@react-pdf/renderer'
+import type { Style } from '@react-pdf/types'
 import type { ResumeDocument, ResumeDocumentSection, ResumeDocumentEntry } from '../../types/resume-document'
 
 Font.registerHyphenationCallback(word => [word])
@@ -17,7 +18,7 @@ interface StyleConfig {
   fontSize: number
   lineHeight: number
   textAlign?: 'left' | 'justify'
-  pageSize: 'LETTER' | 'A4'
+  pageSize: 'LETTER' | 'A4' | 'TABLOID'
   marginPt: number
   paddingTopPt: number
   paddingRightPt: number
@@ -143,7 +144,7 @@ function makeStyles(cfg: StyleConfig) {
 }
 
 // Parses **bold** markdown and returns react-pdf Text fragments
-function renderInlineMarkdown(text: string, baseStyle: object, boldFont: string): React.ReactNode {
+function renderInlineMarkdown(text: string, baseStyle: Style, boldFont: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*)/g)
   if (parts.length === 1) return text
   return parts.map((part, i) => {
@@ -181,7 +182,7 @@ function ContactLine({ contact, styles }: { contact: ResumeDocument['contact']; 
 
   if (!parts.length) return null
 
-  const itemStyle = { color: '#444444', fontSize: styles.contactLine.fontSize, textDecoration: 'none' }
+  const itemStyle: Style = { color: '#444444', fontSize: styles.contactLine.fontSize, textDecoration: 'none' }
   const sepStyle = { color: '#888888', fontSize: styles.contactLine.fontSize, marginLeft: 5, marginRight: 5 }
 
   return (
@@ -247,7 +248,7 @@ function Section({ section, styles, font }: { section: ResumeDocumentSection; st
                 {renderInlineMarkdown(skill, styles.skillsText, font)}
               </Text>
             ))
-          : <Text style={styles.skillsText}>{section.skills.join('  ·  ')}</Text>
+          : <Text style={styles.skillsText}>{section.skills.join(' · ')}</Text>
       )}
 
       {section.layout === 'entries' && section.entries?.map((entry, i) => (

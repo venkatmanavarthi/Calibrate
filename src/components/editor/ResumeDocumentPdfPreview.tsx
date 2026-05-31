@@ -6,7 +6,7 @@ import type { ResumeDocument } from '@/types/resume-document'
 interface Props {
   doc: ResumeDocument
   font: string
-  pageSize: 'Letter' | 'A4'
+  pageSize: 'Letter' | 'A4' | 'Tabloid'
   marginMm: number
   fontSize?: number
   lineHeight?: number
@@ -27,7 +27,7 @@ const FONT_MAP: Record<string, string> = {
   'Helvetica': 'Helvetica',
 }
 
-const PAGE_PX = { Letter: { w: 816, h: 1056 }, A4: { w: 794, h: 1123 } }
+const PAGE_PX = { Letter: { w: 816, h: 1056 }, A4: { w: 794, h: 1123 }, Tabloid: { w: 1056, h: 1632 } }
 
 function mmToPt(mm: number): number {
   return (mm * 72) / 25.4
@@ -46,7 +46,7 @@ export default function ResumeDocumentPdfPreview({
     fontSize,
     lineHeight,
     textAlign,
-    pageSize: (pageSize === 'Letter' ? 'LETTER' : 'A4') as 'LETTER' | 'A4',
+    pageSize: (pageSize === 'Letter' ? 'LETTER' : pageSize === 'Tabloid' ? 'TABLOID' : 'A4') as 'LETTER' | 'A4' | 'TABLOID',
     marginPt,
     paddingTopPt: paddingTopMm !== undefined ? mmToPt(paddingTopMm) : marginPt,
     paddingRightPt: paddingRightMm !== undefined ? mmToPt(paddingRightMm) : marginPt,

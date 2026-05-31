@@ -4,7 +4,7 @@ import { marked } from 'marked'
 interface PdfPreviewProps {
   markdown: string
   font: string
-  pageSize: 'Letter' | 'A4'
+  pageSize: 'Letter' | 'A4' | 'Tabloid'
   marginMm: number
   fontSize?: number
   textAlign?: string
@@ -17,7 +17,7 @@ interface PdfPreviewProps {
 }
 
 // Page dimensions in px at 96dpi
-const PAGE_PX = { Letter: { w: 816, h: 1056 }, A4: { w: 794, h: 1123 } }
+const PAGE_PX = { Letter: { w: 816, h: 1056 }, A4: { w: 794, h: 1123 }, Tabloid: { w: 1056, h: 1632 } }
 
 function buildHtml(
   body: string,

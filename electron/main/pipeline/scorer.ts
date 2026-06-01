@@ -69,7 +69,7 @@ export async function scoreJob(
   const messages = [
     {
       role: 'system' as const,
-      content: `You are a career advisor scoring job fit. Given a candidate profile and a job description, return ONLY a JSON object with no markdown fences:\n{"score": <integer 1-10>, "reason": "<one sentence explanation>"}\n\nScoring criteria:\n- 9-10: Exceptional match, candidate exceeds most requirements\n- 7-8: Strong match, candidate meets most requirements\n- 5-6: Moderate match, some gaps but transferable skills\n- 3-4: Weak match, significant skill gaps\n- 1-2: Poor match, fundamentally misaligned role`
+      content: `You are a career advisor scoring job fit. Given a candidate profile and a job description, return ONLY a JSON object with no code fences:\n{"score": <integer 1-10>, "reason": "<one sentence explanation>"}\n\nScoring criteria:\n- 9-10: Exceptional match, candidate exceeds most requirements\n- 7-8: Strong match, candidate meets most requirements\n- 5-6: Moderate match, some gaps but transferable skills\n- 3-4: Weak match, significant skill gaps\n- 1-2: Poor match, fundamentally misaligned role`
     },
     {
       role: 'user' as const,

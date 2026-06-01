@@ -15,8 +15,8 @@ import { startChromeApply } from '../chrome-apply/index'
 import { scoreJob } from './scorer'
 import { buildGenerationMessages } from '../ai/prompts/generate'
 import { buildProfileResumeDocument, normalizeResumeDocument, parseResumeDocument, stripCodeFences } from '../ai/resume-document'
-import { resumeDocumentToMarkdown } from '../ai/utils/resume-doc-to-markdown'
 import type { Pipeline, PipelineRun, ScoredJob } from '../../../src/types/models'
+import type { ResumeDocument } from '../../../src/types/resume-document'
 import { generateId } from './utils'
 
 function nowIso(): string {
@@ -135,10 +135,10 @@ export async function runPipeline(pipeline: Pipeline, win: BrowserWindow): Promi
       for (const job of toApply) {
         try {
           // Generate resume first
-          const markdown = await generateResumeForScoredJob(job, pipeline)
+          const resumeDocument = await generateResumeForScoredJob(job, pipeline)
           const withResume: ScoredJob = {
             ...job,
-            resumeMarkdown: markdown,
+            resumeDocument,
             resumeGeneratedAt: nowIso()
           }
           await saveScoredJob(withResume)
@@ -179,7 +179,7 @@ export async function runPipeline(pipeline: Pipeline, win: BrowserWindow): Promi
 export async function generateResumeForScoredJob(
   scoredJob: ScoredJob,
   pipeline: Pipeline
-): Promise<string> {
+): Promise<ResumeDocument> {
   const settings = await loadSettings()
   const profile = await getProfile(pipeline.profileId)
   if (!profile) throw new Error(`Profile ${pipeline.profileId} not found`)
@@ -201,8 +201,8 @@ export async function generateResumeForScoredJob(
 
   const cleaned = stripCodeFences(raw)
   try {
-    return resumeDocumentToMarkdown(normalizeResumeDocument(parseResumeDocument(cleaned), profile))
+    return normalizeResumeDocument(parseResumeDocument(cleaned), profile)
   } catch {
-    return resumeDocumentToMarkdown(buildProfileResumeDocument(profile))
+    return buildProfileResumeDocument(profile)
   }
 }

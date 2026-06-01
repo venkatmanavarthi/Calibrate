@@ -1,5 +1,6 @@
 import { getDb } from './db'
 import type { Pipeline, PipelineRun, ScoredJob } from '../../../src/types/models'
+import type { ResumeDocument } from '../../../src/types/resume-document'
 
 type PipelineRow = {
   id: string
@@ -45,19 +46,25 @@ type ScoredJobRow = {
   score: number
   scoreReason: string
   scoredAt: string
-  resumeMarkdown: string | null
+  resumeDocument: string | null
   resumeGeneratedAt: string | null
 }
 
 function rowToPipeline(row: PipelineRow): Pipeline {
   return {
-    ...row,
+    id: row.id,
+    name: row.name,
+    profileId: row.profileId,
     provider: row.provider as Pipeline['provider'],
+    model: row.model,
     companyIds: JSON.parse(row.companyIds) as string[] | 'all',
+    scheduleMinutes: row.scheduleMinutes,
     minScore: row.minScore ?? undefined,
     enabled: row.enabled === 1,
     autoApply: row.autoApply === 1,
     autoApplyMinScore: row.autoApplyMinScore ?? undefined,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
     lastRunAt: row.lastRunAt ?? undefined
   }
 }
@@ -76,7 +83,7 @@ function rowToScoredJob(row: ScoredJobRow): ScoredJob {
     ...row,
     jobSource: row.jobSource as ScoredJob['jobSource'],
     jobRemote: row.jobRemote === 1,
-    resumeMarkdown: row.resumeMarkdown ?? undefined,
+    resumeDocument: row.resumeDocument ? JSON.parse(row.resumeDocument) as ResumeDocument : undefined,
     resumeGeneratedAt: row.resumeGeneratedAt ?? undefined
   }
 }
@@ -113,7 +120,7 @@ export async function savePipeline(pipeline: Pipeline): Promise<void> {
         lastRunAt         = excluded.lastRunAt
     `)
     .run(
-      pipeline.id, pipeline.name, pipeline.profileId, pipeline.templateId,
+      pipeline.id, pipeline.name, pipeline.profileId, '',
       pipeline.provider, pipeline.model, JSON.stringify(pipeline.companyIds),
       pipeline.scheduleMinutes, pipeline.minScore ?? null,
       pipeline.enabled ? 1 : 0,
@@ -182,12 +189,12 @@ export async function saveScoredJob(job: ScoredJob): Promise<void> {
       INSERT INTO scored_jobs
         (id, pipelineId, runId, jobId, jobTitle, jobCompany, jobLocation, jobRemote,
          jobApplyUrl, jobSource, jobDescriptionHtml, score, scoreReason, scoredAt,
-         resumeMarkdown, resumeGeneratedAt)
+         resumeDocument, resumeGeneratedAt)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         score             = excluded.score,
         scoreReason       = excluded.scoreReason,
-        resumeMarkdown    = excluded.resumeMarkdown,
+        resumeDocument    = excluded.resumeDocument,
         resumeGeneratedAt = excluded.resumeGeneratedAt
     `)
     .run(
@@ -195,7 +202,7 @@ export async function saveScoredJob(job: ScoredJob): Promise<void> {
       job.jobTitle, job.jobCompany, job.jobLocation, job.jobRemote ? 1 : 0,
       job.jobApplyUrl, job.jobSource, job.jobDescriptionHtml,
       job.score, job.scoreReason, job.scoredAt,
-      job.resumeMarkdown ?? null, job.resumeGeneratedAt ?? null
+      job.resumeDocument ? JSON.stringify(job.resumeDocument) : null, job.resumeGeneratedAt ?? null
     )
 }
 
@@ -206,12 +213,12 @@ export async function saveScoredJobs(jobs: ScoredJob[]): Promise<void> {
     INSERT INTO scored_jobs
       (id, pipelineId, runId, jobId, jobTitle, jobCompany, jobLocation, jobRemote,
        jobApplyUrl, jobSource, jobDescriptionHtml, score, scoreReason, scoredAt,
-       resumeMarkdown, resumeGeneratedAt)
+       resumeDocument, resumeGeneratedAt)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       score             = excluded.score,
       scoreReason       = excluded.scoreReason,
-      resumeMarkdown    = excluded.resumeMarkdown,
+      resumeDocument    = excluded.resumeDocument,
       resumeGeneratedAt = excluded.resumeGeneratedAt
   `)
   db.transaction(() => {
@@ -221,7 +228,7 @@ export async function saveScoredJobs(jobs: ScoredJob[]): Promise<void> {
         job.jobTitle, job.jobCompany, job.jobLocation, job.jobRemote ? 1 : 0,
         job.jobApplyUrl, job.jobSource, job.jobDescriptionHtml,
         job.score, job.scoreReason, job.scoredAt,
-        job.resumeMarkdown ?? null, job.resumeGeneratedAt ?? null
+        job.resumeDocument ? JSON.stringify(job.resumeDocument) : null, job.resumeGeneratedAt ?? null
       )
     }
   })()

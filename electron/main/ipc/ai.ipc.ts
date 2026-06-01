@@ -5,7 +5,7 @@ import { buildRevisionMessages } from '../ai/prompts/revise'
 import { buildRatingMessages } from '../ai/prompts/rate'
 import { buildEditElementMessages } from '../ai/prompts/edit-element'
 import { validateOutput } from '../ai/validator'
-import { resumeDocumentToMarkdown } from '../ai/utils/resume-doc-to-markdown'
+import { resumeDocumentToText } from '../ai/utils/resume-doc-to-text'
 import { buildProfileResumeDocument, normalizeResumeDocument, parseResumeDocument, stripCodeFences } from '../ai/resume-document'
 import { getProfile } from '../storage/profiles.store'
 import { loadSettings } from '../storage/settings.store'
@@ -38,18 +38,18 @@ export function registerAiIpc(win: BrowserWindow): void {
 
       const cleanJson = stripCodeFences(fullText)
       let resumeDocument: ResumeDocument | undefined
-      let markdownText: string
+      let resumeText: string
 
       try {
         resumeDocument = normalizeResumeDocument(parseResumeDocument(cleanJson), profile)
-        markdownText = resumeDocumentToMarkdown(resumeDocument)
+        resumeText = resumeDocumentToText(resumeDocument)
       } catch {
         resumeDocument = buildProfileResumeDocument(profile)
-        markdownText = resumeDocumentToMarkdown(resumeDocument)
+        resumeText = resumeDocumentToText(resumeDocument)
       }
 
-      const warnings = validateOutput(markdownText, profile)
-      win.webContents.send('ai:done', { requestId: req.requestId, fullText: markdownText, warnings, resumeDocument })
+      const warnings = validateOutput(resumeText, profile)
+      win.webContents.send('ai:done', { requestId: req.requestId, fullText: resumeText, warnings, resumeDocument })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err)
       win.webContents.send('ai:error', { requestId: req.requestId, message })
@@ -91,7 +91,7 @@ export function registerAiIpc(win: BrowserWindow): void {
   ipcMain.handle('ai:rateResume', async (_, req: RateResumeRequest): Promise<ResumeRating> => {
     const settings = await loadSettings()
     const provider = await buildProvider(req.provider, settings)
-    const messages = buildRatingMessages(req.resumeMarkdown, req.jobDescription, settings.customPrompts?.analysis)
+    const messages = buildRatingMessages(req.resumeDocument, req.jobDescription, settings.customPrompts?.analysis)
     const raw = await provider.generate(messages, { model: req.model, temperature: 0.1 }, () => {})
     const cleaned = raw.replace(/^```(?:json)?\r?\n?/, '').replace(/\r?\n?```\s*$/, '').trim()
     return JSON.parse(cleaned) as ResumeRating

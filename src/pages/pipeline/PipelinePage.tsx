@@ -18,11 +18,11 @@ import { usePipelineStore } from '@/stores/pipeline.store'
 import { useApplicationsStore } from '@/stores/applications.store'
 import { useJobsStore } from '@/stores/jobs.store'
 import { useProfilesStore } from '@/stores/profiles.store'
-import { useTemplatesStore } from '@/stores/templates.store'
 import { useSettingsStore } from '@/stores/settings.store'
 import { useGeneratorStore } from '@/stores/generator.store'
 import { generateId, now } from '@/lib/utils'
 import { PROVIDER_LABELS, PROVIDER_MODELS } from '@/lib/ai-providers'
+import { resumeDocumentToText } from '@/lib/resume-doc-to-text'
 import type { Pipeline, ScoredJob, AIProvider } from '@/types/models'
 
 const SCHEDULE_OPTIONS = [
@@ -69,12 +69,10 @@ function PipelineFormDialog({
   const savePipeline = usePipelineStore((s) => s.savePipeline)
   const { companies } = useJobsStore()
   const { profiles } = useProfilesStore()
-  const { templates } = useTemplatesStore()
   const { settings } = useSettingsStore()
 
   const [name, setName] = useState('')
   const [profileId, setProfileId] = useState('')
-  const [templateId, setTemplateId] = useState('')
   const [provider, setProvider] = useState('')
   const [model, setModel] = useState('')
   const [companyIds, setCompanyIds] = useState<string[] | 'all'>('all')
@@ -90,7 +88,6 @@ function PipelineFormDialog({
     if (initial) {
       setName(initial.name)
       setProfileId(initial.profileId)
-      setTemplateId(initial.templateId)
       setProvider(initial.provider)
       setModel(initial.model)
       setCompanyIds(initial.companyIds)
@@ -102,7 +99,6 @@ function PipelineFormDialog({
     } else {
       setName('')
       setProfileId(profiles[0]?.id ?? '')
-      setTemplateId(templates[0]?.id ?? '')
       const defaultProvider = settings?.preferredProvider ?? 'anthropic'
       setProvider(defaultProvider)
       setModel(PROVIDER_MODELS[defaultProvider]?.[0] ?? '')
@@ -113,10 +109,10 @@ function PipelineFormDialog({
       setAutoApply(false)
       setAutoApplyMinScore('')
     }
-  }, [open, initial, profiles, templates, settings])
+  }, [open, initial, profiles, settings])
 
   const handleSave = async () => {
-    if (!name.trim() || !profileId || !templateId || !provider || !model) return
+    if (!name.trim() || !profileId || !provider || !model) return
     setBusy(true)
     const parsed = parseInt(minScore, 10)
     const parsedAutoApplyMin = parseInt(autoApplyMinScore, 10)
@@ -124,7 +120,6 @@ function PipelineFormDialog({
       id: initial?.id ?? generateId(),
       name: name.trim(),
       profileId,
-      templateId,
       provider: provider as Pipeline['provider'],
       model,
       companyIds,
@@ -158,7 +153,7 @@ function PipelineFormDialog({
   const isCompanySelected = (id: string) =>
     companyIds === 'all' || companyIds.includes(id)
 
-  const canSave = name.trim() && profileId && templateId && provider && model
+  const canSave = name.trim() && profileId && provider && model
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
@@ -176,22 +171,13 @@ function PipelineFormDialog({
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My pipeline" />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3">
             <div className="grid gap-1.5 min-w-0 overflow-hidden">
               <Label>Profile</Label>
               <Select value={profileId} onValueChange={setProfileId}>
                 <SelectTrigger className="w-full truncate"><SelectValue placeholder="Select profile" /></SelectTrigger>
                 <SelectContent>
                   {profiles.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5 min-w-0 overflow-hidden">
-              <Label>Template</Label>
-              <Select value={templateId} onValueChange={setTemplateId}>
-                <SelectTrigger className="w-full truncate"><SelectValue placeholder="Select template" /></SelectTrigger>
-                <SelectContent>
-                  {templates.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -343,7 +329,7 @@ function ResumeViewerDialog({
           <DialogDescription>Generated resume — score {job.score}/10</DialogDescription>
         </DialogHeader>
         <pre className="flex-1 overflow-y-auto text-xs font-mono whitespace-pre-wrap bg-muted/40 rounded-md p-3 border border-border">
-          {job.resumeMarkdown}
+          {job.resumeDocument ? resumeDocumentToText(job.resumeDocument) : ''}
         </pre>
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={onClose}>Close</Button>
@@ -390,7 +376,7 @@ function ScoredJobRow({
           </span>
           <span className="text-sm font-medium truncate">{job.jobTitle}</span>
           {job.jobRemote && <Badge variant="secondary" className="text-[10px] py-0">Remote</Badge>}
-          {job.resumeMarkdown && (
+          {job.resumeDocument && (
             <Badge variant="outline" className="text-[10px] py-0 text-green-700 border-green-300">
               Resume ready
             </Badge>
@@ -404,12 +390,12 @@ function ScoredJobRow({
         <p className="text-xs text-muted-foreground mt-0.5 italic line-clamp-1">{job.scoreReason}</p>
       </div>
       <div className="flex items-center gap-1 flex-shrink-0">
-        {job.resumeMarkdown && (
+        {job.resumeDocument && (
           <Button variant="ghost" size="sm" onClick={() => onViewResume(job)} title="View resume">
             <Wand2 size={13} />
           </Button>
         )}
-        {job.resumeMarkdown && (
+        {job.resumeDocument && (
           <Button
             variant="ghost"
             size="sm"
@@ -502,7 +488,7 @@ function PipelineCard({
   }
 
   const handleUseInGenerator = (job: ScoredJob) => {
-    const text = `${job.jobTitle} @ ${job.jobCompany}\n${job.jobLocation}\n${job.jobApplyUrl}\n\n${job.resumeMarkdown ?? ''}`
+    const text = `${job.jobTitle} @ ${job.jobCompany}\n${job.jobLocation}\n${job.jobApplyUrl}`
     setJobDescription(text)
     navigate('/generate')
   }
@@ -612,7 +598,7 @@ function PipelineCard({
                     <Wand2 size={11} className="mr-1" />
                     Generate {selectedIds.size}
                   </Button>
-                  {[...selectedIds].every((id) => filteredJobs.find((j) => j.id === id)?.resumeMarkdown) && (
+                  {[...selectedIds].every((id) => filteredJobs.find((j) => j.id === id)?.resumeDocument) && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -671,7 +657,6 @@ export default function PipelinePage() {
   const { pipelines, load, deletePipeline, _onRunStarted, _onRunProgress, _onRunCompleted, _onRunError } = usePipelineStore()
   const { load: loadJobs } = useJobsStore()
   const { load: loadProfiles } = useProfilesStore()
-  const { load: loadTemplates } = useTemplatesStore()
   const { load: loadSettings } = useSettingsStore()
 
   const [formOpen, setFormOpen] = useState(false)
@@ -681,9 +666,8 @@ export default function PipelinePage() {
     load()
     loadJobs()
     loadProfiles()
-    loadTemplates()
     loadSettings()
-  }, [load, loadJobs, loadProfiles, loadTemplates, loadSettings])
+  }, [load, loadJobs, loadProfiles, loadSettings])
 
   // Subscribe to pipeline run events from main process
   useEffect(() => {

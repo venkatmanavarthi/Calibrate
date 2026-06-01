@@ -1,4 +1,5 @@
 import type { Message } from '../types'
+import type { ResumeDocument } from '../../../../src/types/resume-document'
 
 const DEFAULT_SYSTEM_PROMPT = `You are an expert resume analyst and ATS (Applicant Tracking System) specialist. Your job is to evaluate a resume against a job description and return a structured JSON rating.
 
@@ -11,8 +12,8 @@ ATS Score (0–100):
 
 Keyword Score (0–100):
 - Identify two categories from the job description:
-  1. **Skills/tools/technologies/certifications** (e.g. "Python", "AWS", "Kubernetes", "PMP") — match these word-by-word, case-insensitive. Only count a match if the exact term (or an unambiguous abbreviation, e.g. "JS" for "JavaScript") appears literally in the resume. Do NOT infer or assume from context.
-  2. **Responsibilities/experience/soft skills** (e.g. "led cross-functional teams", "drove revenue growth") — evaluate these contextually. A match counts if the resume demonstrates the concept with equivalent meaning, even if the exact words differ.
+  1. Skills/tools/technologies/certifications (e.g. "Python", "AWS", "Kubernetes", "PMP") — match these word-by-word, case-insensitive. Only count a match if the exact term (or an unambiguous abbreviation, e.g. "JS" for "JavaScript") appears literally in the resume. Do NOT infer or assume from context.
+  2. Responsibilities/experience/soft skills (e.g. "led cross-functional teams", "drove revenue growth") — evaluate these contextually. A match counts if the resume demonstrates the concept with equivalent meaning, even if the exact words differ.
 - Keyword Score = percentage of category-1 skills found literally + percentage of category-2 concepts evidenced contextually, averaged with equal weight across both categories
 - matchedKeywords and missingKeywords must only list category-1 skill/tool/technology terms (not responsibilities), so the user knows exactly what hard skills to add
 
@@ -45,12 +46,12 @@ For missingKeywords: list the important keywords from the JD missing from the re
 For impactDetails: list 2-4 observations about the impact/metrics (e.g. "3 of 8 bullets are quantified" or "No metrics in the Projects section").
 For summary: write a brief overall assessment focused on actionable insight.`
 
-export function buildRatingMessages(resumeMarkdown: string, jobDescription: string, customPrompt?: string): Message[] {
+export function buildRatingMessages(resumeDocument: ResumeDocument, jobDescription: string, customPrompt?: string): Message[] {
   return [
     { role: 'system' as const, content: customPrompt?.trim() || DEFAULT_SYSTEM_PROMPT },
     {
       role: 'user' as const,
-      content: `JOB DESCRIPTION:\n${jobDescription}\n\n---\n\nRESUME:\n${resumeMarkdown}`
+      content: `JOB DESCRIPTION:\n${jobDescription}\n\n---\n\nRESUME DOCUMENT JSON:\n${JSON.stringify(resumeDocument, null, 2)}`
     }
   ]
 }

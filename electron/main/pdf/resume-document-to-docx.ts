@@ -6,12 +6,8 @@ import {
 import type { PdfExportRequest } from '../../../src/types/models'
 import type { ResumeDocument, ResumeDocumentSection } from '../../../src/types/resume-document'
 
-function parseInlineMd(text: string, size: number, font: string): TextRun[] {
-  return text.split(/(\*\*[^*]+\*\*)/g)
-    .filter(p => p.length > 0)
-    .map(p => p.startsWith('**') && p.endsWith('**')
-      ? new TextRun({ text: p.slice(2, -2), bold: true, size, font })
-      : new TextRun({ text: p, size, font }))
+function textRun(text: string, size: number, font: string): TextRun[] {
+  return [new TextRun({ text, size, font })]
 }
 
 // Page sizes in twips
@@ -32,7 +28,7 @@ function bullet(text: string, font: string): Paragraph {
     numbering: { reference: 'bullets', level: 0 },
     alignment: AlignmentType.JUSTIFIED,
     spacing: { after: 60 },
-    children: parseInlineMd(text, 20, font),
+    children: textRun(text, 20, font),
   })
 }
 
@@ -64,7 +60,7 @@ function skillLine(label: string, value: string, font: string): Paragraph {
     spacing: { after: 40 },
     children: [
       new TextRun({ text: label + ': ', bold: true, size: 20, font }),
-      ...parseInlineMd(value, 20, font),
+      ...textRun(value, 20, font),
     ],
   })
 }
@@ -127,7 +123,7 @@ function buildSection(section: ResumeDocumentSection, font: string, contentWidth
     paras.push(new Paragraph({
       alignment: AlignmentType.JUSTIFIED,
       spacing: { after: 80 },
-      children: parseInlineMd(section.text, 20, font),
+      children: textRun(section.text, 20, font),
     }))
   }
 
@@ -140,7 +136,7 @@ function buildSection(section: ResumeDocumentSection, font: string, contentWidth
         paras.push(new Paragraph({
           alignment: AlignmentType.JUSTIFIED,
           spacing: { after: 40 },
-          children: parseInlineMd(skill, 20, font),
+          children: textRun(skill, 20, font),
         }))
       }
     }
@@ -154,7 +150,7 @@ function buildSection(section: ResumeDocumentSection, font: string, contentWidth
         paras.push(new Paragraph({
           alignment: AlignmentType.JUSTIFIED,
           spacing: { after: 60 },
-          children: parseInlineMd(entry.body, 20, font),
+          children: textRun(entry.body, 20, font),
         }))
       }
       for (const b of entry.bullets ?? []) paras.push(bullet(b, font))

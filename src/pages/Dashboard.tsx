@@ -1,8 +1,7 @@
 import { useNavigate } from 'react-router-dom'
-import { User, FileText, Wand2, ArrowRight, Check, Circle } from 'lucide-react'
+import { User, Wand2, ArrowRight, Check, Circle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useProfilesStore } from '@/stores/profiles.store'
-import { useTemplatesStore } from '@/stores/templates.store'
 import { useSettingsStore } from '@/stores/settings.store'
 import { formatDate } from '@/lib/utils'
 
@@ -33,16 +32,13 @@ function ChecklistItem({ done, label, actionLabel, onAction }: ChecklistItemProp
 export default function Dashboard() {
   const navigate = useNavigate()
   const profiles = useProfilesStore((s) => s.profiles)
-  const templates = useTemplatesStore((s) => s.templates)
   const settings = useSettingsStore((s) => s.settings)
 
   const recentProfiles = profiles.slice(0, 3)
-  const recentTemplates = templates.slice(0, 3)
 
   const hasProvider = (settings?.configuredProviders.length ?? 0) > 0 || settings?.preferredProvider === 'lmstudio'
   const hasProfile = profiles.length > 0
-  const hasTemplate = templates.length > 0
-  const allSetUp = hasProvider && hasProfile && hasTemplate
+  const allSetUp = hasProvider && hasProfile
 
   return (
     <div className="p-8 max-w-4xl">
@@ -69,12 +65,6 @@ export default function Dashboard() {
               actionLabel="Create →"
               onAction={() => navigate('/profiles/new')}
             />
-            <ChecklistItem
-              done={hasTemplate}
-              label="Pick or create a resume template"
-              actionLabel="Browse →"
-              onAction={() => navigate('/templates')}
-            />
           </div>
         </div>
       )}
@@ -87,7 +77,7 @@ export default function Dashboard() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Recent Profiles */}
         <div>
           <div className="flex items-center justify-between mb-3">
@@ -117,41 +107,6 @@ export default function Dashboard() {
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Updated {formatDate(p.updatedAt.slice(0, 7))}
                   </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Recent Templates */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold flex items-center gap-2">
-              <FileText size={16} /> Resume Templates
-            </h3>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/templates')}>
-              View all
-            </Button>
-          </div>
-          {recentTemplates.length === 0 ? (
-            <div className="border border-dashed rounded-lg p-6 text-center">
-              <p className="text-muted-foreground text-sm">No templates yet.</p>
-              <Button variant="outline" size="sm" className="mt-3" onClick={() => navigate('/templates/new')}>
-                Create template
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {recentTemplates.map((t) => (
-                <div
-                  key={t.id}
-                  className="border rounded-lg p-3 cursor-pointer hover:bg-accent transition-colors"
-                  onClick={() => navigate(`/templates/${t.id}`)}
-                >
-                  <p className="font-medium text-sm">{t.name}</p>
-                  {t.description && (
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{t.description}</p>
-                  )}
                 </div>
               ))}
             </div>

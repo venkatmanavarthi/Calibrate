@@ -8,6 +8,7 @@ interface OpenAICompatibleOptions {
   visionEnabled?: boolean
   useMaxCompletionTokens?: boolean
   supportsTemperature?: boolean
+  unsupportedTemperatureModelPrefixes?: string[]
 }
 
 function toOpenAIContent(content: MessageContent, visionEnabled: boolean): string | OpenAI.Chat.ChatCompletionContentPart[] {
@@ -28,6 +29,7 @@ export class OpenAICompatibleProvider implements LLMProvider {
   private visionEnabled: boolean
   private useMaxCompletionTokens: boolean
   private supportsTemperature: boolean
+  private unsupportedTemperatureModelPrefixes: string[]
 
   constructor(
     providerName: string,
@@ -45,6 +47,7 @@ export class OpenAICompatibleProvider implements LLMProvider {
     this.visionEnabled = resolvedOptions.visionEnabled ?? true
     this.useMaxCompletionTokens = resolvedOptions.useMaxCompletionTokens ?? true
     this.supportsTemperature = resolvedOptions.supportsTemperature ?? true
+    this.unsupportedTemperatureModelPrefixes = resolvedOptions.unsupportedTemperatureModelPrefixes ?? []
   }
 
   supportsVision(): boolean { return this.visionEnabled }
@@ -58,7 +61,9 @@ export class OpenAICompatibleProvider implements LLMProvider {
     const tokenParam = useMaxTokens
       ? { max_tokens: opts.maxTokens ?? 4096 }
       : { max_completion_tokens: opts.maxTokens ?? 4096 }
-    const temperatureParam = this.supportsTemperature ? { temperature: opts.temperature ?? 0.2 } : {}
+    const supportsTemperatureForModel = this.supportsTemperature
+      && !this.unsupportedTemperatureModelPrefixes.some(prefix => opts.model.startsWith(prefix))
+    const temperatureParam = supportsTemperatureForModel ? { temperature: opts.temperature ?? 0.2 } : {}
     const stream = await this.client.chat.completions.create({
       model: opts.model,
       ...temperatureParam,

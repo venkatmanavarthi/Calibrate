@@ -2,9 +2,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { X, BarChart2, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { ResumeRating, AIProvider } from '@/types/models'
+import type { ResumeDocument } from '@/types/resume-document'
 
 interface Props {
-  resumeMarkdown: string
+  resumeDocument: ResumeDocument | null
   jobDescription: string
   provider: AIProvider
   model: string
@@ -81,7 +82,7 @@ function Collapsible({ title, items, emptyMsg }: { title: string; items: string[
   )
 }
 
-export default function ResumeRatingPanel({ resumeMarkdown, jobDescription, provider, model, onClose, initialRating, initialLoading }: Props) {
+export default function ResumeRatingPanel({ resumeDocument, jobDescription, provider, model, onClose, initialRating, initialLoading }: Props) {
   const [rating, setRating] = useState<ResumeRating | null>(initialRating ?? null)
   const [loading, setLoading] = useState(initialLoading ?? false)
   const [error, setError] = useState<string | null>(null)
@@ -99,14 +100,15 @@ export default function ResumeRatingPanel({ resumeMarkdown, jobDescription, prov
     setLoading(true)
     setError(null)
     try {
-      const result = await window.api.aiRateResume({ resumeMarkdown, jobDescription, provider, model })
+      if (!resumeDocument) return
+      const result = await window.api.aiRateResume({ resumeDocument, jobDescription, provider, model })
       setRating(result)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Rating failed')
     } finally {
       setLoading(false)
     }
-  }, [resumeMarkdown, jobDescription, provider, model])
+  }, [resumeDocument, jobDescription, provider, model])
 
   // Only auto-fetch if no initialRating was provided by parent
   useEffect(() => {

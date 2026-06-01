@@ -1,7 +1,7 @@
 export function buildParseResumeMessages(resumeText: string) {
   const systemPrompt = `You are a resume parser. Extract structured data from the resume text below and return a single JSON object matching this TypeScript interface exactly.
 
-Return ONLY raw JSON — no markdown fences, no explanation, no preamble.
+Return ONLY raw JSON — no code fences, no explanation, no preamble.
 
 interface PersonalInfo {
   fullName: string

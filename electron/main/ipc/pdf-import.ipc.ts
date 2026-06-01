@@ -59,7 +59,7 @@ function assignIds<T extends object>(items: ParsedEntry[] | undefined, mapper: (
 }
 
 function extractJson(raw: string): string {
-  // Strip markdown fences if present
+  // Strip code fences if present
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/)
   if (fenced) return fenced[1].trim()
   // Find first { ... } block

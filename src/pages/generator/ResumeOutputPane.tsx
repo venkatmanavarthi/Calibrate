@@ -7,7 +7,6 @@ import SelectionToolbar from '@/components/editor/SelectionToolbar'
 import HallucinationWarningBanner from '@/components/shared/HallucinationWarning'
 import ResumeRatingPanel from '@/components/shared/ResumeRatingPanel'
 import PdfCookingAnimation from '@/components/shared/PdfCookingAnimation'
-import { resumeDocumentToMarkdown } from '@/lib/resume-doc-to-markdown'
 import { useGeneratorStore } from '@/stores/generator.store'
 import { useSettingsStore } from '@/stores/settings.store'
 import type { AppSettings } from '@/types/models'
@@ -73,7 +72,6 @@ export default function ResumeOutputPane() {
       const dest = await window.api.pdfChooseDestination()
       if (!dest.filePath) return
       await window.api.pdfExport({
-        markdownContent: '',
         resumeDocument,
         destFilePath: dest.filePath,
         pageSize: settings.pdfPageSize,
@@ -94,7 +92,6 @@ export default function ResumeOutputPane() {
     setEmailing(true)
     try {
       await window.api.pdfEmailExport({
-        markdownContent: '',
         resumeDocument,
         destFilePath: '',
         pageSize: settings.pdfPageSize,
@@ -201,8 +198,6 @@ export default function ResumeOutputPane() {
       setEditingTarget(null)
     }
   }, [resumeDocument, settings, activeProvider, activeModel, setResumeDocument])
-
-  const resumeMarkdownForRating = resumeDocument ? resumeDocumentToMarkdown(resumeDocument) : ''
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -343,7 +338,7 @@ export default function ResumeOutputPane() {
             </div>
             <div className="flex-1 min-w-0">
               <ResumeRatingPanel
-                resumeMarkdown={resumeMarkdownForRating}
+                resumeDocument={resumeDocument}
                 jobDescription={jobDescription}
                 provider={activeProvider}
                 model={activeModel}

@@ -17,17 +17,21 @@ export default function PdfCookingAnimation({ label }: Props) {
   const [msgIndex, setMsgIndex] = useState(0)
   const [visible, setVisible] = useState(true)
   const prevLabel = useRef(label)
+  const fadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (label) return
     const msgTimer = setInterval(() => {
       setVisible(false)
-      setTimeout(() => {
+      fadeTimer.current = setTimeout(() => {
         setMsgIndex((i) => (i + 1) % MESSAGES.length)
         setVisible(true)
       }, 250)
     }, 2400)
-    return () => clearInterval(msgTimer)
+    return () => {
+      clearInterval(msgTimer)
+      if (fadeTimer.current) clearTimeout(fadeTimer.current)
+    }
   }, [label])
 
   // Reset fade when label prop changes
@@ -97,8 +101,8 @@ export default function PdfCookingAnimation({ label }: Props) {
       <div className="flex flex-col items-center gap-2">
         {/* Message with crossfade */}
         <p
-          className="text-sm font-medium text-foreground transition-opacity duration-[250ms]"
-          style={{ opacity: visible ? 1 : 0 }}
+          className="text-sm font-medium text-foreground transition-opacity"
+          style={{ opacity: visible ? 1 : 0, transitionDuration: '250ms' }}
         >
           {displayMsg}
         </p>

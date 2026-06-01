@@ -12,13 +12,13 @@ Rules:
 7. Include sections for ALL non-empty data categories in the profile: workHistory, education, skills, projects, certifications, languages, awards, publications, volunteer work. Omit a section only if the profile has no data for it.
 8. Keep the resume compact: 2–3 sentences for the summary, 3–5 bullets for recent roles, 2–4 bullets for older roles, and one line per skill category.
 9. Write bullets in a natural, specific voice. Avoid generic filler like "results-driven", "dynamic", "leveraged", or "utilized".
-10. In bullet points, bold one impactful phrase using **bold** markdown — focus on quantified results (e.g. **40% faster**), key technologies (e.g. **Kubernetes**), or a strong outcome (e.g. **reduced latency**). Do not bold more than one short phrase per bullet.`
+10. Keep bullet points plain text. Focus each bullet on quantified results, key technologies, or a strong outcome.`
 
 export const DEFAULT_REVISION_PROMPT = `You are a professional resume editor. You will be given a segment of a resume and an editing instruction. Revise ONLY the given segment according to the instruction. You must NOT add any experience, skill, or achievement that is not present in the source profile excerpt below.
 
 Rules:
 1. Return ONLY the revised segment. No preamble, no explanation, no surrounding text.
-2. Preserve Markdown formatting structure (headings, bullets, bold, etc.).
+2. Preserve the surrounding resume structure.
 3. Do not remove bullets unless the instruction explicitly says to condense.
 4. Do not add metrics or facts not present in the profile excerpt.`
 

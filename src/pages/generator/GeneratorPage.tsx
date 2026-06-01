@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { generateId } from '@/lib/utils'
 import { useGeneratorStore } from '@/stores/generator.store'
-import { resumeDocumentToMarkdown } from '@/lib/resume-doc-to-markdown'
 import JobInputPane from './JobInputPane'
 import ResumeOutputPane from './ResumeOutputPane'
 
@@ -55,7 +54,7 @@ export default function GeneratorPage() {
             setIsRating(true)
             setRating(null)
             window.api.aiRateResume({
-              resumeMarkdown: resumeDocumentToMarkdown(resumeDocument),
+              resumeDocument,
               jobDescription: jd,
               provider,
               model,

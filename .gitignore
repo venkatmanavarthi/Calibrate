@@ -5,5 +5,5 @@ dist/
 .DS_Store
 *.local
 *.local.*
-.claude/settings.local.json
+.claude/
 bun.lockb

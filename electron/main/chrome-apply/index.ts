@@ -13,7 +13,7 @@ import { saveApplication } from '../storage/applications.store'
 import { saveApplyRun, listApplyRuns, saveApplyStep } from '../storage/apply-runs.store'
 import { getSiteCredential, markSiteCredentialLogin, saveSiteCredential } from '../storage/site-credentials.store'
 import { getGmailStatus, findRecentVerificationCode } from '../gmail/index'
-import { exportMarkdownAsPdf } from '../pdf/exporter'
+import { exportToPdf } from '../pdf/exporter'
 import { SCREENSHOTS_DIR } from '../storage/index'
 import type {
   ApplicationRecord,
@@ -69,10 +69,16 @@ function isLikelyAccountPage(snapshot: ChromeSnapshot): boolean {
 }
 
 async function buildPdf(scoredJob: ScoredJob): Promise<string | null> {
-  if (!scoredJob.resumeMarkdown) return null
+  if (!scoredJob.resumeDocument) return null
   const settings = await loadSettings()
   const destPath = path.join(os.tmpdir(), `calibrate-resume-${scoredJob.id}.pdf`)
-  await exportMarkdownAsPdf(scoredJob.resumeMarkdown, destPath, settings.pdfPageSize)
+  await exportToPdf({
+    resumeDocument: scoredJob.resumeDocument,
+    destFilePath: destPath,
+    pageSize: settings.pdfPageSize,
+    marginMm: settings.pdfMarginMm,
+    font: settings.pdfFont,
+  })
   return destPath
 }
 

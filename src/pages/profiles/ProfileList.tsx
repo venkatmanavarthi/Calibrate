@@ -30,7 +30,7 @@ export default function ProfileList() {
     const result = await window.api.importData()
     if (result.imported) {
       await useProfilesStore.getState().load()
-      alert(`Imported ${result.profileCount} profile(s) and ${result.templateCount} template(s).`)
+      alert(`Imported ${result.profileCount} profile(s).`)
     }
   }
 

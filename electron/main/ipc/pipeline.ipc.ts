@@ -47,10 +47,10 @@ export function registerPipelineIpc(win: BrowserWindow): void {
       const updated: ScoredJob[] = []
 
       for (const job of targets) {
-        const markdown = await generateResumeForScoredJob(job, pipeline)
+        const resumeDocument = await generateResumeForScoredJob(job, pipeline)
         const updatedJob: ScoredJob = {
           ...job,
-          resumeMarkdown: markdown,
+          resumeDocument,
           resumeGeneratedAt: new Date().toISOString()
         }
         await saveScoredJob(updatedJob)

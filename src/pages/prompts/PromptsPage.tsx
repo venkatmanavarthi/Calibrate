@@ -77,7 +77,7 @@ export default function PromptsPage() {
       </div>
 
       <div className="bg-muted rounded-lg p-3 text-sm text-muted-foreground">
-        Profile data, template structure, and job description are automatically appended at runtime — only the persona and rules shown below are customizable.
+        Profile data, resume schema, and job description are automatically appended at runtime — only the persona and rules shown below are customizable.
       </div>
 
       {/* Generation Prompt */}

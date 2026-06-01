@@ -2,7 +2,7 @@ import type { ExperienceProfile } from '../../../../src/types/models'
 import { DEFAULT_GENERATION_PROMPT } from '../../../../src/lib/default-prompts'
 
 const SCHEMA_DESCRIPTION = `
-Output ONLY one valid JSON object matching this exact TypeScript shape. Do not return markdown, code fences, prose, comments, or partial JSON:
+Output ONLY one valid JSON object matching this exact TypeScript shape. Do not return code fences, prose, comments, or partial JSON:
 
 {
   "contact": {
@@ -31,7 +31,7 @@ Output ONLY one valid JSON object matching this exact TypeScript shape. Do not r
       "right"?: string,      // date range, graduation date, or issue date
       "subleft"?: string,    // role title, degree, issuer, or technologies
       "subright"?: string,   // location when present in the profile
-      "bullets"?: string[],  // achievement bullets; use **bold** for at most one short phrase per bullet
+      "bullets"?: string[],  // achievement bullets; plain text only
       "body"?: string        // short paragraph only when bullets are not appropriate
     }>
   }>
@@ -58,7 +58,7 @@ STYLE TARGET:
 - Keep bullets concise and factual, usually 16–26 words. Start with a strong verb.
 - Prefer the candidate's original metrics and technologies over generic claims. If no metric exists, write a specific non-quantified outcome from the source bullet.
 - For recent roles, use 4-6 bullets. For older roles, use 2-4 bullets. For projects, use 1-3 bullets.
-- Do not output nested bullets, tables, HTML, markdown headings, comments, or explanatory notes inside JSON string fields.
+- Do not output nested bullets, tables, HTML, comments, or explanatory notes inside JSON string fields.
 - Use standard section titles exactly as shown in SECTION ORDER.
 
 SECTION ORDER: Output sections in exactly this order (omit a section only if the profile has no data for it):

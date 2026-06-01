@@ -185,7 +185,6 @@ function AISetupStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => voi
 function DoneStep({ onGoToDashboard, onCreateProfile }: { onGoToDashboard: () => void; onCreateProfile: () => void }) {
   const nextSteps = [
     { icon: User, label: 'Create an experience profile', sub: 'Your work history, skills, and projects' },
-    { icon: FileText, label: 'Pick or create a template', sub: 'The structure and style of your resume' },
     { icon: Wand2, label: 'Generate your first resume', sub: 'Paste a job description and let AI do the work' }
   ]
 
@@ -193,7 +192,7 @@ function DoneStep({ onGoToDashboard, onCreateProfile }: { onGoToDashboard: () =>
     <div className="space-y-6">
       <div className="text-center space-y-1">
         <h2 className="text-xl font-bold">You're almost ready</h2>
-        <p className="text-muted-foreground text-sm">Three quick steps and you'll have your first tailored resume.</p>
+        <p className="text-muted-foreground text-sm">Create a profile, then generate your first tailored resume.</p>
       </div>
 
       <div className="space-y-2.5">

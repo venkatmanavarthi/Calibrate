@@ -1,6 +1,5 @@
 import type {
   ExperienceProfile,
-  ResumeTemplate,
   AppSettings,
   AIProvider,
   HallucinationWarning,
@@ -68,13 +67,6 @@ export interface WindowAPI {
   profilesDelete: (id: string) => Promise<{ ok: true }>
   profilesImportFromPdf: () => Promise<{ imported: false } | { imported: true; profile: ExperienceProfile }>
 
-  // Templates
-  templatesList: () => Promise<ResumeTemplate[]>
-  templatesGet: (id: string) => Promise<ResumeTemplate | null>
-  templatesSave: (template: ResumeTemplate) => Promise<{ ok: true }>
-  templatesDelete: (id: string) => Promise<{ ok: true }>
-  templatesExportCalibrate: (id: string) => Promise<{ filePath: string | null }>
-
   // Prompts
   promptsExportCalibrate: () => Promise<{ filePath: string | null }>
 
@@ -105,10 +97,9 @@ export interface WindowAPI {
 
   // Import / Export
   exportData: () => Promise<{ filePath: string | null }>
-  importData: () => Promise<{ imported: boolean; profileCount: number; templateCount: number }>
+  importData: () => Promise<{ imported: boolean; profileCount: number }>
 
   // .calibrate file open
-  onTemplateOpenCalibrate: (cb: (template: ResumeTemplate) => void) => () => void
   onPromptsOpenCalibrate: (cb: (prompts: { generation: string; revision: string }) => void) => () => void
 
   // Jobs
@@ -181,7 +172,6 @@ declare global {
 
 export type {
   ExperienceProfile,
-  ResumeTemplate,
   AppSettings,
   AIProvider,
   HallucinationWarning,

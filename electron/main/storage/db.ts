@@ -69,7 +69,7 @@ function createTables(db: Database.Database): void {
       id              TEXT PRIMARY KEY,
       name            TEXT NOT NULL,
       profileId       TEXT NOT NULL,
-      templateId      TEXT NOT NULL,
+      templateId      TEXT NOT NULL DEFAULT '',
       provider        TEXT NOT NULL,
       model           TEXT NOT NULL,
       companyIds      TEXT NOT NULL,
@@ -109,7 +109,7 @@ function createTables(db: Database.Database): void {
       score              REAL NOT NULL,
       scoreReason        TEXT NOT NULL,
       scoredAt           TEXT NOT NULL,
-      resumeMarkdown     TEXT,
+      resumeDocument     TEXT,
       resumeGeneratedAt  TEXT
     );
 
@@ -177,6 +177,9 @@ function createTables(db: Database.Database): void {
   } catch { /* column already exists */ }
   try {
     db.exec('ALTER TABLE pipelines ADD COLUMN autoApplyMinScore REAL')
+  } catch { /* column already exists */ }
+  try {
+    db.exec('ALTER TABLE scored_jobs ADD COLUMN resumeDocument TEXT')
   } catch { /* column already exists */ }
 
   for (const stmt of [
@@ -247,7 +250,7 @@ export async function migrateFromJson(): Promise<void> {
     scoredJob: db.prepare(`
       INSERT OR IGNORE INTO scored_jobs
         (id, pipelineId, runId, jobId, jobTitle, jobCompany, jobLocation, jobRemote,
-         jobApplyUrl, jobSource, jobDescriptionHtml, score, scoreReason, scoredAt, resumeMarkdown, resumeGeneratedAt)
+         jobApplyUrl, jobSource, jobDescriptionHtml, score, scoreReason, scoredAt, resumeDocument, resumeGeneratedAt)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
   }
@@ -266,7 +269,7 @@ export async function migrateFromJson(): Promise<void> {
     }
     for (const p of pipelines) {
       stmts.pipeline.run(
-        p.id, p.name, p.profileId, p.templateId, p.provider, p.model,
+        p.id, p.name, p.profileId, '', p.provider, p.model,
         JSON.stringify(p.companyIds), p.scheduleMinutes, p.minScore ?? null,
         p.enabled ? 1 : 0, p.createdAt, p.updatedAt, p.lastRunAt ?? null
       )
@@ -283,7 +286,7 @@ export async function migrateFromJson(): Promise<void> {
         j.jobTitle, j.jobCompany, j.jobLocation, j.jobRemote ? 1 : 0,
         j.jobApplyUrl, j.jobSource, j.jobDescriptionHtml,
         j.score, j.scoreReason, j.scoredAt,
-        j.resumeMarkdown ?? null, j.resumeGeneratedAt ?? null
+        j.resumeDocument ? JSON.stringify(j.resumeDocument) : null, j.resumeGeneratedAt ?? null
       )
     }
   })()

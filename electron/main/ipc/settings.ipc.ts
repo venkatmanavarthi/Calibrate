@@ -4,6 +4,17 @@ import { loadSettings, saveSettings } from '../storage/settings.store'
 import { setKey, deleteKey, hasKey } from '../security/keystore'
 import type { AIProvider, AppSettings, CalibrateFile } from '../../../src/types/models'
 
+export async function readPromptsCalibrateFile(filePath: string): Promise<CalibrateFile | null> {
+  try {
+    const raw = await fs.readFile(filePath, 'utf-8')
+    const file = JSON.parse(raw) as CalibrateFile
+    if (file.version === 1 && file.type === 'prompts') return file
+  } catch {
+    // Ignore invalid shared prompt files.
+  }
+  return null
+}
+
 export function registerSettingsIpc(): void {
   ipcMain.handle('settings:get', () => loadSettings())
 

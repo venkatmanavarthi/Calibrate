@@ -3,20 +3,17 @@ import Sidebar from './Sidebar'
 import UpdateBanner from './UpdateBanner'
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard'
 import { useProfilesStore } from '@/stores/profiles.store'
-import { useTemplatesStore } from '@/stores/templates.store'
 import { useSettingsStore } from '@/stores/settings.store'
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const loadProfiles = useProfilesStore((s) => s.load)
-  const loadTemplates = useTemplatesStore((s) => s.load)
   const loadSettings = useSettingsStore((s) => s.load)
   const theme = useSettingsStore((s) => s.settings?.theme)
 
   useEffect(() => {
     loadProfiles()
-    loadTemplates()
     loadSettings()
-  }, [loadProfiles, loadTemplates, loadSettings])
+  }, [loadProfiles, loadSettings])
 
   useEffect(() => {
     const root = document.documentElement

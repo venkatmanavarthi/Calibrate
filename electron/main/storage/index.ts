@@ -5,7 +5,6 @@ import { initDb, migrateFromJson } from './db'
 
 export const STORAGE_ROOT = app.getPath('userData')
 export const PROFILES_DIR = path.join(STORAGE_ROOT, 'profiles')
-export const TEMPLATES_DIR = path.join(STORAGE_ROOT, 'templates')
 export const JOBS_DIR = path.join(STORAGE_ROOT, 'jobs')
 export const SETTINGS_FILE = path.join(STORAGE_ROOT, 'settings.json')
 export const KEYRING_FILE = path.join(STORAGE_ROOT, 'keyring.json')
@@ -25,7 +24,6 @@ export const PIPELINE_SCORED_JOBS_FILE = path.join(PIPELINE_DIR, 'scored-jobs.js
 
 export async function ensureDirectories(): Promise<void> {
   await fs.mkdir(PROFILES_DIR, { recursive: true })
-  await fs.mkdir(TEMPLATES_DIR, { recursive: true })
   await fs.mkdir(JOBS_DIR, { recursive: true })
   await fs.mkdir(PIPELINE_DIR, { recursive: true })
   await fs.mkdir(SCREENSHOTS_DIR, { recursive: true })

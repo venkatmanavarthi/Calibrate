@@ -1,10 +1,9 @@
 import { app, BrowserWindow, shell, nativeTheme } from 'electron'
 import { join } from 'path'
 import { ensureDirectories } from './storage/index'
-import { seedExampleTemplates } from './storage/seed'
 import { loadSettings } from './storage/settings.store'
 import { registerAllIpc } from './ipc/index'
-import { readCalibrateFile } from './ipc/templates.ipc'
+import { readPromptsCalibrateFile } from './ipc/settings.ipc'
 import { startChromeApplyBridge } from './chrome-apply/bridge'
 
 let mainWindow: BrowserWindow | null = null
@@ -16,13 +15,9 @@ function getCalibrateArgv(argv: string[]): string | null {
 
 async function sendCalibrateFile(filePath: string): Promise<void> {
   if (!mainWindow) return
-  const file = await readCalibrateFile(filePath)
+  const file = await readPromptsCalibrateFile(filePath)
   if (!file) return
-  if (file.type === 'template') {
-    mainWindow.webContents.send('template:openCalibrate', file.template)
-  } else if (file.type === 'prompts') {
-    mainWindow.webContents.send('prompts:openCalibrate', { generation: file.generation, revision: file.revision })
-  }
+  mainWindow.webContents.send('prompts:openCalibrate', { generation: file.generation, revision: file.revision })
 }
 
 // Must register before app is ready to catch macOS cold-start open-file events
@@ -59,7 +54,6 @@ if (!gotLock) {
 async function createWindow(): Promise<void> {
   await ensureDirectories()
   startChromeApplyBridge()
-  await seedExampleTemplates()
 
   const settings = await loadSettings()
   const prefersDark =

@@ -86,17 +86,6 @@ export interface ExperienceProfile {
   accomplishments: AccomplishmentEntry[]
 }
 
-export interface ResumeTemplate {
-  id: string
-  name: string
-  description?: string
-  markdownContent: string
-  createdAt: string
-  updatedAt: string
-  defaultStyleHints?: string
-  preset?: boolean
-}
-
 export type AIProvider = 'anthropic' | 'openai' | 'gemini' | 'groq' | 'deepseek' | 'lmstudio'
 
 export interface LMStudioConfig {
@@ -162,7 +151,6 @@ export interface RevisionRequest {
 }
 
 export interface PdfExportRequest {
-  markdownContent: string
   resumeDocument?: import('./resume-document').ResumeDocument
   destFilePath: string
   pageSize: 'Letter' | 'A4' | 'Tabloid'
@@ -178,12 +166,10 @@ export interface ExportBundle {
   version: 1
   exportedAt: string
   profiles: ExperienceProfile[]
-  templates: ResumeTemplate[]
 }
 
 export type CalibrateFile =
-  | { version: 1; type: 'template'; template: ResumeTemplate }
-  | { version: 1; type: 'prompts'; generation: string; revision: string }
+  { version: 1; type: 'prompts'; generation: string; revision: string }
 
 export interface ResumeRating {
   overallScore: number
@@ -198,7 +184,7 @@ export interface ResumeRating {
 }
 
 export interface RateResumeRequest {
-  resumeMarkdown: string
+  resumeDocument: import('./resume-document').ResumeDocument
   jobDescription: string
   provider: AIProvider
   model: string
@@ -270,7 +256,6 @@ export interface Pipeline {
   id: string
   name: string
   profileId: string
-  templateId: string
   provider: AIProvider
   model: string
   companyIds: string[] | 'all'
@@ -312,7 +297,7 @@ export interface ScoredJob {
   score: number
   scoreReason: string
   scoredAt: string
-  resumeMarkdown?: string
+  resumeDocument?: import('./resume-document').ResumeDocument
   resumeGeneratedAt?: string
 }
 

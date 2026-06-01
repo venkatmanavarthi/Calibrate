@@ -4,7 +4,6 @@ import type { ResumeDocument } from '@/types/resume-document'
 
 interface GeneratorState {
   selectedProfileId: string | null
-  selectedTemplateId: string | null
   jobDescription: string
   activeProvider: AIProvider
   activeModel: string
@@ -17,17 +16,13 @@ interface GeneratorState {
   rating: ResumeRating | null
   isRating: boolean
 
-  viewMode: 'pdf' | 'structured'
-
   setProfile: (id: string) => void
-  setTemplate: (id: string) => void
   setJobDescription: (jd: string) => void
   setProvider: (p: AIProvider) => void
   setModel: (m: string) => void
   setResumeDocument: (doc: ResumeDocument | null) => void
   setWarnings: (w: HallucinationWarning[]) => void
   setGenerating: (v: boolean, requestId?: string | null) => void
-  setViewMode: (m: 'pdf' | 'structured') => void
   clearWarnings: () => void
   reorderSections: (fromIndex: number, toIndex: number) => void
   setRating: (r: ResumeRating | null) => void
@@ -36,7 +31,6 @@ interface GeneratorState {
 
 export const useGeneratorStore = create<GeneratorState>((set) => ({
   selectedProfileId: null,
-  selectedTemplateId: null,
   jobDescription: '',
   activeProvider: 'anthropic',
   activeModel: 'claude-sonnet-4-5',
@@ -49,17 +43,13 @@ export const useGeneratorStore = create<GeneratorState>((set) => ({
   rating: null,
   isRating: false,
 
-  viewMode: 'pdf',
-
   setProfile: (id) => set({ selectedProfileId: id }),
-  setTemplate: (id) => set({ selectedTemplateId: id }),
   setJobDescription: (jd) => set({ jobDescription: jd }),
   setProvider: (p) => set({ activeProvider: p }),
   setModel: (m) => set({ activeModel: m }),
   setResumeDocument: (doc) => set({ resumeDocument: doc }),
   setWarnings: (w) => set({ warnings: w }),
   setGenerating: (v, requestId = null) => set({ isGenerating: v, currentRequestId: requestId }),
-  setViewMode: (m) => set({ viewMode: m }),
   clearWarnings: () => set({ warnings: [] }),
   reorderSections: (fromIndex, toIndex) => set((state) => {
     if (!state.resumeDocument) return state

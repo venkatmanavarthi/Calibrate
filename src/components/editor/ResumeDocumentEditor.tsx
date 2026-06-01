@@ -100,6 +100,18 @@ function highlightMissing(text: string, missing: string[]): React.ReactNode {
   )
 }
 
+function renderInlineText(text: string, missingKeywords?: string[]): React.ReactNode {
+  const missing = missingKeywords ?? []
+  return text.split(/(\*\*[^*]+\*\*)/g)
+    .filter(Boolean)
+    .map((part, i) => {
+      const isBold = part.startsWith('**') && part.endsWith('**')
+      const content = isBold ? part.slice(2, -2) : part
+      const rendered = missing.length ? highlightMissing(content, missing) : content
+      return isBold ? <strong key={i}>{rendered}</strong> : <span key={i}>{rendered}</span>
+    })
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function ContactSection({ doc, selected, editing, onSelect }: {
@@ -129,6 +141,21 @@ function ContactSection({ doc, selected, editing, onSelect }: {
       >
         <span className="text-2xl font-bold">{contact.name}</span>
       </SelectableElement>
+
+      {contact.title && (
+        <div className="mt-0.5">
+          <SelectableElement
+            target={{ type: 'contact', field: 'title' }}
+            selected={matchesTarget(selected, { type: 'contact', field: 'title' })}
+            editing={matchesTarget(editing, { type: 'contact', field: 'title' })}
+            onSelect={onSelect}
+            className="inline-block px-1 py-0.5"
+            inline
+          >
+            <span className="text-base text-muted-foreground">{contact.title}</span>
+          </SelectableElement>
+        </div>
+      )}
 
       {contactParts.length > 0 && (
         <div className="flex flex-wrap justify-center gap-x-1 mt-1 text-xs text-muted-foreground">
@@ -170,7 +197,7 @@ function BulletItem({ bullet, target, selected, editing, onSelect, missingKeywor
       className="flex gap-2 px-1 py-0.5 ml-2"
     >
       <span className="mt-0.5 shrink-0 text-muted-foreground">•</span>
-      <span className="text-sm leading-relaxed">{missingKeywords?.length ? highlightMissing(bullet, missingKeywords) : bullet}</span>
+      <span className="text-sm leading-relaxed">{renderInlineText(bullet, missingKeywords)}</span>
     </SelectableElement>
   )
 }
@@ -205,7 +232,7 @@ function EntryBlock({ entry, sectionIndex, entryIndex, selected, editing, onSele
           {entry.subright && <span className="text-xs text-muted-foreground shrink-0">{entry.subright}</span>}
         </div>
       )}
-      {entry.body && <p className="text-sm mt-1 leading-relaxed">{entry.body}</p>}
+      {entry.body && <p className="text-sm mt-1 leading-relaxed">{renderInlineText(entry.body, missingKeywords)}</p>}
       {entry.bullets?.map((bullet, bulletIndex) => (
         <BulletItem
           key={bulletIndex}
@@ -294,7 +321,7 @@ function SectionBlock({ section, sectionIndex, selected, editing, onSelect, onTo
           className="px-1 py-1"
         >
           <p className="text-sm leading-relaxed">
-            {missingKeywords?.length ? highlightMissing(section.text, missingKeywords) : section.text}
+            {renderInlineText(section.text, missingKeywords)}
           </p>
         </SelectableElement>
       )}
@@ -311,7 +338,7 @@ function SectionBlock({ section, sectionIndex, selected, editing, onSelect, onTo
               className="px-1.5 py-0.5"
               inline
             >
-              <span className="text-xs">{skill}</span>
+              <span className="text-xs">{renderInlineText(skill)}</span>
             </SelectableElement>
           ))}
         </div>

@@ -3,7 +3,6 @@ import type { BrowserWindow } from 'electron'
 import { buildProvider } from '../ai/index'
 import { loadSettings } from '../storage/settings.store'
 import { getProfile } from '../storage/profiles.store'
-import { getTemplate } from '../storage/templates.store'
 import { listCompanies, listJobs } from '../storage/jobs.store'
 import {
   saveRun,
@@ -15,6 +14,8 @@ import {
 import { startChromeApply } from '../chrome-apply/index'
 import { scoreJob } from './scorer'
 import { buildGenerationMessages } from '../ai/prompts/generate'
+import { buildProfileResumeDocument, normalizeResumeDocument, parseResumeDocument, stripCodeFences } from '../ai/resume-document'
+import { resumeDocumentToMarkdown } from '../ai/utils/resume-doc-to-markdown'
 import type { Pipeline, PipelineRun, ScoredJob } from '../../../src/types/models'
 import { generateId } from './utils'
 
@@ -181,16 +182,13 @@ export async function generateResumeForScoredJob(
 ): Promise<string> {
   const settings = await loadSettings()
   const profile = await getProfile(pipeline.profileId)
-  const template = await getTemplate(pipeline.templateId)
   if (!profile) throw new Error(`Profile ${pipeline.profileId} not found`)
-  if (!template) throw new Error(`Template ${pipeline.templateId} not found`)
 
   const provider = await buildProvider(pipeline.provider, settings)
   const jobDescription = `${scoredJob.jobTitle} @ ${scoredJob.jobCompany}\n${scoredJob.jobLocation}\n${scoredJob.jobApplyUrl}\n\n${stripHtml(scoredJob.jobDescriptionHtml)}`
 
   const messages = buildGenerationMessages(
     profile,
-    template.markdownContent,
     jobDescription,
     settings.customPrompts?.generation
   )
@@ -201,6 +199,10 @@ export async function generateResumeForScoredJob(
     () => {}
   )
 
-  // Strip code fences if present
-  return raw.replace(/^```\w*\r?\n?/, '').replace(/\r?\n?```\s*$/, '').trim()
+  const cleaned = stripCodeFences(raw)
+  try {
+    return resumeDocumentToMarkdown(normalizeResumeDocument(parseResumeDocument(cleaned), profile))
+  } catch {
+    return resumeDocumentToMarkdown(buildProfileResumeDocument(profile))
+  }
 }

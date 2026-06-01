@@ -2,11 +2,12 @@ import type { ExperienceProfile } from '../../../../src/types/models'
 import { DEFAULT_GENERATION_PROMPT } from '../../../../src/lib/default-prompts'
 
 const SCHEMA_DESCRIPTION = `
-Output ONLY a valid JSON object matching this exact TypeScript shape — no markdown fences, no explanation:
+Output ONLY one valid JSON object matching this exact TypeScript shape. Do not return markdown, code fences, prose, comments, or partial JSON:
 
 {
   "contact": {
     "name": string,
+    "title"?: string,  // concise professional title from the profile, usually the current or most recent job title
     "email"?: string,
     "phone"?: string,
     "location"?: string,
@@ -26,33 +27,53 @@ Output ONLY a valid JSON object matching this exact TypeScript shape — no mark
 
     // layout "entries": include "entries" array
     "entries"?: Array<{
-      "left": string,      // primary label, e.g. company name or institution
-      "right"?: string,    // right-aligned text, e.g. date range "Jan 2020 – Present"
-      "subleft"?: string,  // secondary left, e.g. job title or degree
-      "subright"?: string, // secondary right, e.g. location
-      "bullets"?: string[],  // use **bold** to highlight 1 key phrase per bullet (metric, tech, or outcome)
-      "body"?: string      // paragraph text if no bullets
+      "left": string,        // company, institution, project, certification, or award name
+      "right"?: string,      // date range, graduation date, or issue date
+      "subleft"?: string,    // role title, degree, issuer, or technologies
+      "subright"?: string,   // location when present in the profile
+      "bullets"?: string[],  // achievement bullets; use **bold** for at most one short phrase per bullet
+      "body"?: string        // short paragraph only when bullets are not appropriate
     }>
   }>
 }
 
-Section layout guidance by content type:
-- Experience: layout "entries" — left=company, subleft=job title, right=date range, subright=location, bullets=achievements
-- Education: layout "entries" — left=institution, subleft=degree + field, right=graduation date, subright=location
-- Projects: layout "entries" — left=project name, right=date range (if available), subleft=technologies used, bullets=key achievements/features
-- Certifications: layout "entries" — left=certification name, subleft=issuing organization, right=issue date (and expiry if present)
-- Awards & Honors: layout "entries" — left=award name, subleft=issuing organization, right=date
-- Publications: layout "entries" — left=publication title, subleft=journal/venue, right=date, body=brief description if needed
-- Volunteer: layout "entries" — left=organization, subleft=role, right=date range, bullets=contributions
-- Skills: layout "skills" — flat array of skill strings (group by category if appropriate, e.g. "Python · SQL · Spark")
-- Languages: layout "skills" — each language with proficiency, e.g. "English (Native) · Spanish (Conversational)"
-- Summary/Objective: layout "summary" — single paragraph
+Required section titles and layouts:
+- Professional Summary: layout "summary"; one compact paragraph of 2-3 direct sentences.
+- Technical Skills: layout "skills"; 5-8 strings formatted exactly as "Category: item1, item2, item3". Never return one flat skills line.
+- Professional Experience: layout "entries"; one entry for every workHistory item unless the profile is empty.
+- Projects: layout "entries"; include only if profile.projects has data.
+- Education: layout "entries"; include one entry for every education item.
+- Certifications: layout "entries"; include only if profile.certifications has data.
+- Awards & Certifications: layout "entries"; include only if profile.accomplishments has data.
 
-IMPORTANT: Include a section for each profile data category that has entries AND is relevant to the job description. If the profile has projects, certifications, languages, awards, publications, or volunteer work, include those sections. Omit sections only if the profile has no data for that category.`
+Entry mapping:
+- Professional Experience: left=company, right=startDate – endDate, subleft=title, subright=location, bullets=achievement bullets.
+- Education: left=institution, right=graduationDate, subleft=degree + " in " + field.
+- Projects: left=name, right=startDate – endDate if present, subleft=technologiesUsed joined by comma, body=description, bullets=project bullets.
+- Certifications: left=name, right=issueDate – expiryDate if present, subleft=issuer, body=credential ID if present.
+- Awards & Certifications: left=title, right=date, body=description + impact.
+
+STYLE TARGET:
+- Match this compact DOCX structure: centered name/title/contact, uppercase section headings with thin rules, labeled skill lines, bold company/title rows with right-aligned dates, italic role/location rows, and bullet-heavy experience.
+- Keep bullets concise and factual, usually 16–26 words. Start with a strong verb.
+- Prefer the candidate's original metrics and technologies over generic claims. If no metric exists, write a specific non-quantified outcome from the source bullet.
+- For recent roles, use 4-6 bullets. For older roles, use 2-4 bullets. For projects, use 1-3 bullets.
+- Do not output nested bullets, tables, HTML, markdown headings, comments, or explanatory notes inside JSON string fields.
+- Use standard section titles exactly as shown in SECTION ORDER.
+
+SECTION ORDER: Output sections in exactly this order (omit a section only if the profile has no data for it):
+1. Professional Summary
+2. Technical Skills
+3. Professional Experience
+4. Projects (if any)
+5. Education
+6. Certifications (if any)
+7. Awards & Certifications (if any)
+
+Do NOT add sections not listed above. Do NOT reorder sections to match the job description. The order above is fixed.`
 
 export function buildGenerationMessages(
   profile: ExperienceProfile,
-  templateContent: string,
   jobDescription: string,
   customPrompt?: string
 ) {
@@ -65,11 +86,6 @@ ${SCHEMA_DESCRIPTION}
 CANDIDATE PROFILE (source of truth — only use facts from here):
 \`\`\`json
 ${JSON.stringify(profile, null, 2)}
-\`\`\`
-
-RESUME TEMPLATE (use this to determine which sections to include, their order, and the overall style/emphasis — do NOT output markdown, output the JSON schema above):
-\`\`\`markdown
-${templateContent}
 \`\`\`
 
 JOB DESCRIPTION (use only to decide which profile facts are most relevant to highlight):

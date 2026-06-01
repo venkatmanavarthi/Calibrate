@@ -7,10 +7,10 @@ import ResumeOutputPane from './ResumeOutputPane'
 
 export default function GeneratorPage() {
   const {
-    selectedProfileId, selectedTemplateId, jobDescription,
+    selectedProfileId, jobDescription,
     activeProvider, activeModel,
     setGenerating, setResumeDocument, setWarnings, clearWarnings,
-    currentRequestId, setViewMode, setRating, setIsRating,
+    currentRequestId, setRating, setIsRating,
   } = useGeneratorStore()
   const [leftWidth, setLeftWidth] = useState(380)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -49,7 +49,6 @@ export default function GeneratorPage() {
         setGenerating(false, null)
         setWarnings(warnings)
         if (resumeDocument) {
-          setViewMode('structured')
           // Auto-trigger rating if job description is available
           const { jobDescription: jd, activeProvider: provider, activeModel: model } = useGeneratorStore.getState()
           if (jd) {
@@ -80,17 +79,15 @@ export default function GeneratorPage() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleGenerate = async () => {
-    if (!selectedProfileId || !selectedTemplateId) return
+    if (!selectedProfileId) return
     const requestId = generateId()
     setResumeDocument(null)
     clearWarnings()
     setGenerating(true, requestId)
-    setViewMode('pdf')
 
     await window.api.aiGenerate({
       requestId,
       profileId: selectedProfileId,
-      templateId: selectedTemplateId,
       jobDescription,
       provider: activeProvider,
       model: activeModel

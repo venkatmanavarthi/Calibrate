@@ -1,5 +1,6 @@
 export interface ResumeDocumentContact {
   name: string
+  title?: string
   email?: string
   phone?: string
   location?: string

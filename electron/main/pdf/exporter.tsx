@@ -1,95 +1,45 @@
 import fs from 'fs'
-import React from 'react'
+import os from 'os'
+import path from 'path'
+import { randomUUID } from 'crypto'
+import { Document, Packer, Paragraph, TextRun } from 'docx'
 import type { PdfExportRequest } from '../../../src/types/models'
+import { resumeDocumentToDocx } from './resume-document-to-docx'
+import { convertDocxToPdf } from './libreoffice'
 
-const FONT_MAP: Record<string, string> = {
-  'Georgia': 'Times-Roman',
-  'Garamond': 'Times-Roman',
-  'Times New Roman': 'Times-Roman',
-  'Arial': 'Helvetica',
-  'Calibri': 'Helvetica',
-  'Helvetica': 'Helvetica',
-}
-
-function mmToPt(mm: number): number {
-  return (mm * 72) / 25.4
+async function writeTmpDocxAndConvert(buf: Buffer, destFilePath: string): Promise<void> {
+  const tmpId = randomUUID()
+  const tmpDocx = path.join(os.tmpdir(), `${tmpId}.docx`)
+  const tmpPdf = path.join(os.tmpdir(), `${tmpId}.pdf`)
+  try {
+    fs.writeFileSync(tmpDocx, buf)
+    convertDocxToPdf(tmpDocx, os.tmpdir())
+    fs.copyFileSync(tmpPdf, destFilePath)
+  } finally {
+    if (fs.existsSync(tmpDocx)) fs.unlinkSync(tmpDocx)
+    if (fs.existsSync(tmpPdf)) fs.unlinkSync(tmpPdf)
+  }
 }
 
 export async function exportMarkdownAsPdf(markdownText: string, destFilePath: string, pageSize: 'Letter' | 'A4' | 'Tabloid'): Promise<void> {
-  const { renderToBuffer, Document, Page, Text, View } = await import('@react-pdf/renderer')
-  const pdfPageSize = pageSize === 'Letter' ? 'LETTER' : pageSize === 'Tabloid' ? 'TABLOID' : 'A4'
-  const buffer = await renderToBuffer(
-    React.createElement(
-      Document,
-      null,
-      React.createElement(
-        Page,
-        { size: pdfPageSize, style: { padding: 40, fontSize: 10, fontFamily: 'Helvetica' } },
-        React.createElement(View, null, React.createElement(Text, null, markdownText))
-      )
-    ) as any
-  )
-  fs.writeFileSync(destFilePath, buffer)
-}
-
-function resumeDocumentToPlainText(req: PdfExportRequest): string {
-  const doc = req.resumeDocument
-  if (!doc) return req.markdownContent
-  const lines: string[] = [doc.contact.name]
-  const contact = [
-    doc.contact.email,
-    doc.contact.phone,
-    doc.contact.location,
-    doc.contact.linkedin,
-    doc.contact.github,
-    doc.contact.website
-  ].filter(Boolean)
-  if (contact.length) lines.push(contact.join(' | '))
-  for (const section of doc.sections.filter((s) => !s.hidden)) {
-    lines.push('', section.title.toUpperCase())
-    if (section.text) lines.push(section.text)
-    if (section.skills?.length) lines.push(section.skills.join(', '))
-    for (const entry of section.entries ?? []) {
-      lines.push([entry.left, entry.right].filter(Boolean).join(' | '))
-      lines.push([entry.subleft, entry.subright].filter(Boolean).join(' | '))
-      if (entry.body) lines.push(entry.body)
-      for (const bullet of entry.bullets ?? []) lines.push(`- ${bullet}`)
-    }
+  const pageSizes = {
+    Letter:  { width: 12240, height: 15840 },
+    A4:      { width: 11906, height: 16838 },
+    Tabloid: { width: 15840, height: 24480 },
   }
-  return lines.filter((line) => line != null).join('\n')
+  const lines = markdownText.split('\n')
+  const doc = new Document({
+    sections: [{
+      properties: { page: { size: pageSizes[pageSize] ?? pageSizes.Letter, margin: { top: 720, right: 720, bottom: 720, left: 720 } } },
+      children: lines.map((line) => new Paragraph({ children: [new TextRun({ text: line, size: 20, font: 'Calibri' })] })),
+    }],
+  })
+  const buf = await Packer.toBuffer(doc) as Buffer
+  await writeTmpDocxAndConvert(buf, destFilePath)
 }
 
 export async function exportToPdf(req: PdfExportRequest): Promise<void> {
   if (!req.resumeDocument) throw new Error('resumeDocument is required for export')
-  const { renderToBuffer, Document, Page, Text, View } = await import('@react-pdf/renderer')
-
-  const marginPt = mmToPt(req.marginMm)
-  const fontSize = req.fontSize ?? 11
-  const lineHeight = req.lineHeight ?? 1.4
-  const pdfPageSize = req.pageSize === 'Letter' ? 'LETTER' : req.pageSize === 'Tabloid' ? 'TABLOID' : 'A4'
-  const text = resumeDocumentToPlainText(req)
-
-  const buffer = await renderToBuffer(
-    React.createElement(
-      Document,
-      null,
-      React.createElement(
-        Page,
-        {
-          size: pdfPageSize,
-          style: {
-            fontFamily: FONT_MAP[req.font] ?? 'Times-Roman',
-            fontSize,
-            lineHeight,
-            paddingTop: req.paddingTopMm !== undefined ? mmToPt(req.paddingTopMm) : marginPt,
-            paddingRight: req.paddingRightMm !== undefined ? mmToPt(req.paddingRightMm) : marginPt,
-            paddingBottom: req.paddingBottomMm !== undefined ? mmToPt(req.paddingBottomMm) : marginPt,
-            paddingLeft: req.paddingLeftMm !== undefined ? mmToPt(req.paddingLeftMm) : marginPt,
-          }
-        },
-        React.createElement(View, null, React.createElement(Text, null, text))
-      )
-    ) as any
-  )
-  fs.writeFileSync(req.destFilePath, buffer)
+  const buf = await resumeDocumentToDocx(req)
+  await writeTmpDocxAndConvert(buf, req.destFilePath)
 }

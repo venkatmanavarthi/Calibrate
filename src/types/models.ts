@@ -144,7 +144,6 @@ export interface HallucinationWarning {
 export interface GenerateRequest {
   requestId: string
   profileId: string
-  templateId: string
   jobDescription: string
   provider: AIProvider
   model: string
@@ -169,9 +168,6 @@ export interface PdfExportRequest {
   pageSize: 'Letter' | 'A4' | 'Tabloid'
   marginMm: number
   font: string
-  fontSize?: number
-  textAlign?: string
-  lineHeight?: number
   paddingTopMm?: number
   paddingRightMm?: number
   paddingBottomMm?: number

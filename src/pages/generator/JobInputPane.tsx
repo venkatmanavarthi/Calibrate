@@ -5,7 +5,6 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useProfilesStore } from '@/stores/profiles.store'
-import { useTemplatesStore } from '@/stores/templates.store'
 import { useSettingsStore } from '@/stores/settings.store'
 import { useGeneratorStore } from '@/stores/generator.store'
 import { PROVIDER_LABELS, PROVIDER_MODELS } from '@/lib/ai-providers'
@@ -18,12 +17,10 @@ interface Props {
 
 export default function JobInputPane({ onGenerate, onCancel }: Props) {
   const profiles = useProfilesStore((s) => s.profiles)
-  const templates = useTemplatesStore((s) => s.templates)
   const settings = useSettingsStore((s) => s.settings)
 
   const {
     selectedProfileId, setProfile,
-    selectedTemplateId, setTemplate,
     jobDescription, setJobDescription,
     activeProvider, setProvider,
     activeModel, setModel,
@@ -38,19 +35,13 @@ export default function JobInputPane({ onGenerate, onCancel }: Props) {
   }, [settings, profiles, selectedProfileId, setProfile])
 
   useEffect(() => {
-    if (settings && !selectedTemplateId && templates.length > 0) {
-      setTemplate(templates[0].id)
-    }
-  }, [settings, templates, selectedTemplateId, setTemplate])
-
-  useEffect(() => {
     if (settings) {
       setProvider(settings.preferredProvider)
       setModel(settings.preferredModels[settings.preferredProvider])
     }
   }, [settings, setProvider, setModel])
 
-  const canGenerate = selectedProfileId && selectedTemplateId && jobDescription.trim().length > 20 && !isGenerating
+  const canGenerate = selectedProfileId && jobDescription.trim().length > 20 && !isGenerating
 
   const handleClear = () => {
     setJobDescription('')
@@ -70,20 +61,6 @@ export default function JobInputPane({ onGenerate, onCancel }: Props) {
             <SelectContent>
               {profiles.map((p) => (
                 <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Template</Label>
-          <Select value={selectedTemplateId ?? ''} onValueChange={setTemplate}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a template…" />
-            </SelectTrigger>
-            <SelectContent>
-              {templates.map((t) => (
-                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -173,9 +150,6 @@ export default function JobInputPane({ onGenerate, onCancel }: Props) {
         )}
         {!selectedProfileId && (
           <p className="text-xs text-muted-foreground mt-1.5">Create a profile first.</p>
-        )}
-        {!selectedTemplateId && (
-          <p className="text-xs text-muted-foreground mt-1.5">Create a template first.</p>
         )}
       </div>
     </div>

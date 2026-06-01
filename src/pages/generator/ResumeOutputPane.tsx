@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { FileDown, FileText, SlidersHorizontal, X, Type, BarChart2, ZoomIn, ZoomOut, Mail, Layers } from 'lucide-react'
+import { FileDown, SlidersHorizontal, X, BarChart2, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import PdfPreview from '@/components/editor/PdfPreview'
-import ResumeDocumentPdfPreview from '@/components/editor/ResumeDocumentPdfPreview'
 import ResumeDocumentEditor, { type SelectionTarget } from '@/components/editor/ResumeDocumentEditor'
 import SelectionToolbar from '@/components/editor/SelectionToolbar'
 import HallucinationWarningBanner from '@/components/shared/HallucinationWarning'
@@ -19,7 +17,6 @@ export default function ResumeOutputPane() {
     resumeDocument, setResumeDocument,
     warnings, clearWarnings,
     isGenerating,
-    viewMode, setViewMode,
     jobDescription,
     activeProvider, activeModel,
     rating, isRating,
@@ -39,14 +36,10 @@ export default function ResumeOutputPane() {
     }
   }, [resumeDocument])
 
-  const [fontSize, setFontSize] = useState(14)
-  const [lineHeight, setLineHeight] = useState(1.6)
-  const [textAlign, setTextAlign] = useState<'left' | 'justify'>('left')
-  const [padTop, setPadTop] = useState(15)
-  const [padRight, setPadRight] = useState(15)
-  const [padBottom, setPadBottom] = useState(15)
-  const [padLeft, setPadLeft] = useState(15)
-  const [pdfZoom, setPdfZoom] = useState(1.0)
+  const [padTop, setPadTop] = useState(12.7)
+  const [padRight, setPadRight] = useState(12.7)
+  const [padBottom, setPadBottom] = useState(12.7)
+  const [padLeft, setPadLeft] = useState(12.7)
   const [rightPanelWidth, setRightPanelWidth] = useState(220)
   const rightPanelRef = useRef<HTMLDivElement>(null)
 
@@ -86,9 +79,6 @@ export default function ResumeOutputPane() {
         pageSize: settings.pdfPageSize,
         marginMm: settings.pdfMarginMm,
         font: settings.pdfFont,
-        fontSize: Math.round(fontSize / 1.333),
-        lineHeight,
-        textAlign,
         paddingTopMm: padTop,
         paddingRightMm: padRight,
         paddingBottomMm: padBottom,
@@ -110,8 +100,6 @@ export default function ResumeOutputPane() {
         pageSize: settings.pdfPageSize,
         marginMm: settings.pdfMarginMm,
         font: settings.pdfFont,
-        fontSize: Math.round(fontSize / 1.333),
-        lineHeight,
         paddingTopMm: padTop,
         paddingRightMm: padRight,
         paddingBottomMm: padBottom,
@@ -184,11 +172,6 @@ export default function ResumeOutputPane() {
     setResumeDocument(doc)
   }, [resumeDocument, setResumeDocument])
 
-  const handleUpdateMetadata = useCallback((patch: Partial<import('@/types/resume-document').ResumeDocumentMetadata>) => {
-    if (!resumeDocument) return
-    setResumeDocument({ ...resumeDocument, metadata: { ...resumeDocument.metadata, ...patch } })
-  }, [resumeDocument, setResumeDocument])
-
   const handleToggleSection = useCallback((sectionIndex: number) => {
     if (!resumeDocument) return
     const doc = JSON.parse(JSON.stringify(resumeDocument)) as typeof resumeDocument
@@ -219,62 +202,12 @@ export default function ResumeOutputPane() {
     }
   }, [resumeDocument, settings, activeProvider, activeModel, setResumeDocument])
 
-  useEffect(() => {
-    if (viewMode !== 'structured') {
-      setSelectedTarget(null)
-      setSelectedRect(null)
-    }
-  }, [viewMode])
-
   const resumeMarkdownForRating = resumeDocument ? resumeDocumentToMarkdown(resumeDocument) : ''
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Toolbar */}
       <div className="flex items-center gap-2 px-4 py-2.5 border-b bg-muted/30 flex-shrink-0">
-        <div className="flex gap-1 bg-background border rounded-md p-0.5">
-          <Button
-            variant={viewMode === 'pdf' ? 'secondary' : 'ghost'}
-            size="sm"
-            className="h-6 px-2 gap-1 text-xs"
-            onClick={() => setViewMode('pdf')}
-          >
-            <FileText size={12} /> PDF
-          </Button>
-          {resumeDocument && (
-            <Button
-              variant={viewMode === 'structured' ? 'secondary' : 'ghost'}
-              size="sm"
-              className="h-6 px-2 gap-1 text-xs"
-              onClick={() => setViewMode('structured')}
-            >
-              <Layers size={12} /> Structured
-            </Button>
-          )}
-        </div>
-
-        {viewMode === 'pdf' && (
-          <div className="flex items-center gap-1 border rounded-md px-1 py-0.5 bg-background">
-            <Button
-              size="sm" variant="ghost" className="h-6 w-6 p-0"
-              onClick={() => setPdfZoom(z => Math.max(0.5, parseFloat((z - 0.25).toFixed(2))))}
-              disabled={pdfZoom <= 0.5}
-            >
-              <ZoomOut size={12} />
-            </Button>
-            <span className="text-xs tabular-nums w-9 text-center select-none">
-              {Math.round(pdfZoom * 100)}%
-            </span>
-            <Button
-              size="sm" variant="ghost" className="h-6 w-6 p-0"
-              onClick={() => setPdfZoom(z => Math.min(2.0, parseFloat((z + 0.25).toFixed(2))))}
-              disabled={pdfZoom >= 2.0}
-            >
-              <ZoomIn size={12} />
-            </Button>
-          </div>
-        )}
-
         {settings && (
           <div className="ml-auto flex items-center gap-2">
             <Select
@@ -334,7 +267,7 @@ export default function ResumeOutputPane() {
               variant={showStylePanel ? 'secondary' : 'ghost'}
               className="h-7 w-7 p-0"
               onClick={() => { setShowStylePanel((v) => !v); setShowRatingPanel(false) }}
-              title="Typography"
+              title="Margins"
             >
               <SlidersHorizontal size={13} />
             </Button>
@@ -368,7 +301,7 @@ export default function ResumeOutputPane() {
             />
           )}
 
-          {viewMode === 'structured' && resumeDocument ? (
+          {resumeDocument ? (
             <>
               <ResumeDocumentEditor
                 doc={resumeDocument}
@@ -396,36 +329,7 @@ export default function ResumeOutputPane() {
                 />
               )}
             </>
-          ) : resumeDocument ? (
-            <ResumeDocumentPdfPreview
-              doc={resumeDocument}
-              font={settings?.pdfFont ?? 'Georgia'}
-              pageSize={settings?.pdfPageSize ?? 'Letter'}
-              marginMm={settings?.pdfMarginMm ?? 15}
-              fontSize={Math.round(fontSize / 1.333)}
-              lineHeight={lineHeight}
-              textAlign={textAlign}
-              paddingTopMm={padTop}
-              paddingRightMm={padRight}
-              paddingBottomMm={padBottom}
-              paddingLeftMm={padLeft}
-              zoom={pdfZoom}
-            />
-          ) : (
-            <PdfPreview
-              markdown=""
-              font={settings?.pdfFont ?? 'Georgia'}
-              pageSize={settings?.pdfPageSize ?? 'Letter'}
-              marginMm={settings?.pdfMarginMm ?? 15}
-              fontSize={Math.round(fontSize / 1.333)}
-              lineHeight={lineHeight}
-              paddingTopMm={padTop}
-              paddingRightMm={padRight}
-              paddingBottomMm={padBottom}
-              paddingLeftMm={padLeft}
-              zoom={pdfZoom}
-            />
-          )}
+          ) : null}
         </div>
 
         {/* Right rating sidebar */}
@@ -462,10 +366,7 @@ export default function ResumeOutputPane() {
             </div>
             <div className="flex-1 min-w-0 flex flex-col bg-background">
               <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30">
-                <div className="flex items-center gap-1.5">
-                  <Type size={12} className="text-muted-foreground" />
-                  <span className="text-xs font-medium">Typography</span>
-                </div>
+                <span className="text-xs font-medium">Margins (mm)</span>
                 <button
                   onClick={() => setShowStylePanel(false)}
                   className="text-muted-foreground hover:text-foreground rounded p-0.5 transition-colors"
@@ -475,106 +376,32 @@ export default function ResumeOutputPane() {
               </div>
 
               <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-5">
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Font Size</span>
-                    <span className="text-xs tabular-nums bg-muted rounded px-1.5 py-0.5 font-medium">{fontSize}px</span>
-                  </div>
-                  <input
-                    type="range" min={10} max={22} step={1} value={fontSize}
-                    onChange={(e) => setFontSize(Number(e.target.value))}
-                    className="w-full accent-primary cursor-pointer"
-                  />
-                  <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span>10px</span><span>22px</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Line Height</span>
-                    <span className="text-xs tabular-nums bg-muted rounded px-1.5 py-0.5 font-medium">{lineHeight.toFixed(1)}</span>
-                  </div>
-                  <input
-                    type="range" min={1.2} max={2.4} step={0.1} value={lineHeight}
-                    onChange={(e) => setLineHeight(Number(e.target.value))}
-                    className="w-full accent-primary cursor-pointer"
-                  />
-                  <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span>1.2</span><span>2.4</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Text Alignment</span>
-                  <div className="flex gap-1">
-                    {(['left', 'justify'] as const).map((v) => (
-                      <button
-                        key={v}
-                        onClick={() => setTextAlign(v)}
-                        className={`flex-1 text-xs h-7 rounded border transition-colors ${textAlign === v ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border text-muted-foreground hover:border-primary/50'}`}
-                      >
-                        {v === 'left' ? 'Left' : 'Justify'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Colors</span>
-                  <div className="flex flex-col gap-2">
-                    {([
-                      { label: 'Text', key: 'primaryColor', default: '#111111' },
-                      { label: 'Meta / Dates', key: 'metaColor', default: '#555555' },
-                      { label: 'Dividers', key: 'accentColor', default: '#aaaaaa' },
-                    ] as const).map(({ label, key, default: def }) => (
-                      <div key={key} className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">{label}</span>
-                        <div className="flex items-center gap-1.5">
-                          <input
-                            type="color"
-                            value={resumeDocument?.metadata?.[key] ?? def}
-                            onChange={(e) => handleUpdateMetadata({ [key]: e.target.value })}
-                            className="w-8 h-6 rounded border border-border cursor-pointer bg-transparent p-0"
-                          />
-                          <span className="text-[10px] text-muted-foreground tabular-nums w-14">
-                            {resumeDocument?.metadata?.[key] ?? def}
-                          </span>
-                        </div>
+                <div className="flex flex-col gap-1.5">
+                  {([
+                    { label: 'Top', value: padTop, set: setPadTop },
+                    { label: 'Right', value: padRight, set: setPadRight },
+                    { label: 'Bottom', value: padBottom, set: setPadBottom },
+                    { label: 'Left', value: padLeft, set: setPadLeft },
+                  ] as const).map(({ label, value, set: setFn }) => (
+                    <div key={label} className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground w-12">{label}</span>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number" min={0} max={50} step={0.1} value={value}
+                          onChange={(e) => setFn(Math.max(0, Math.min(50, Number(e.target.value))))}
+                          className="w-14 text-center text-xs h-7 rounded border border-border bg-background tabular-nums focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                        <span className="text-[10px] text-muted-foreground">mm</span>
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Padding (mm)</span>
-                  <div className="flex flex-col gap-1.5">
-                    {([
-                      { label: 'Top', value: padTop, set: setPadTop },
-                      { label: 'Right', value: padRight, set: setPadRight },
-                      { label: 'Bottom', value: padBottom, set: setPadBottom },
-                      { label: 'Left', value: padLeft, set: setPadLeft },
-                    ] as const).map(({ label, value, set: setFn }) => (
-                      <div key={label} className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground w-12">{label}</span>
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="number" min={0} max={50} value={value}
-                            onChange={(e) => setFn(Math.max(0, Math.min(50, Number(e.target.value))))}
-                            className="w-14 text-center text-xs h-7 rounded border border-border bg-background tabular-nums focus:outline-none focus:ring-1 focus:ring-primary"
-                          />
-                          <span className="text-[10px] text-muted-foreground">mm</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
               <div className="border-t p-2">
                 <Button
                   variant="ghost" size="sm" className="w-full h-7 text-xs text-muted-foreground"
-                  onClick={() => { setFontSize(14); setLineHeight(1.6); setTextAlign('left'); setPadTop(15); setPadRight(15); setPadBottom(15); setPadLeft(15); if (resumeDocument) setResumeDocument({ ...resumeDocument, metadata: { ...resumeDocument.metadata, primaryColor: undefined, metaColor: undefined, accentColor: undefined } }) }}
+                  onClick={() => { setPadTop(12.7); setPadRight(12.7); setPadBottom(12.7); setPadLeft(12.7) }}
                 >
                   Reset to defaults
                 </Button>

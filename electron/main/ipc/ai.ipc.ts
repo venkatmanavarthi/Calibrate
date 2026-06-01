@@ -6,17 +6,11 @@ import { buildRatingMessages } from '../ai/prompts/rate'
 import { buildEditElementMessages } from '../ai/prompts/edit-element'
 import { validateOutput } from '../ai/validator'
 import { resumeDocumentToMarkdown } from '../ai/utils/resume-doc-to-markdown'
+import { buildProfileResumeDocument, normalizeResumeDocument, parseResumeDocument, stripCodeFences } from '../ai/resume-document'
 import { getProfile } from '../storage/profiles.store'
-import { getTemplate } from '../storage/templates.store'
 import { loadSettings } from '../storage/settings.store'
 import type { GenerateRequest, RevisionRequest, RateResumeRequest, ResumeRating, AIProvider, EditElementRequest } from '../../../src/types/models'
 import type { ResumeDocument } from '../../../src/types/resume-document'
-
-// AIs frequently wrap their output in ```markdown ... ``` fences despite being told not to.
-// Strip them so the renderer always receives clean markdown.
-function stripCodeFences(text: string): string {
-  return text.replace(/^```\w*\r?\n?/, '').replace(/\r?\n?```\s*$/, '').trim()
-}
 
 const activeControllers = new Map<string, AbortController>()
 
@@ -26,17 +20,15 @@ export function registerAiIpc(win: BrowserWindow): void {
     activeControllers.set(req.requestId, controller)
 
     try {
-      const [profile, template, settings] = await Promise.all([
+      const [profile, settings] = await Promise.all([
         getProfile(req.profileId),
-        getTemplate(req.templateId),
         loadSettings()
       ])
 
       if (!profile) throw new Error(`Profile ${req.profileId} not found`)
-      if (!template) throw new Error(`Template ${req.templateId} not found`)
 
       const provider = await buildProvider(req.provider, settings)
-      const messages = buildGenerationMessages(profile, template.markdownContent, req.jobDescription, settings.customPrompts?.generation)
+      const messages = buildGenerationMessages(profile, req.jobDescription, settings.customPrompts?.generation)
 
       const fullText = await provider.generate(
         messages,
@@ -49,11 +41,11 @@ export function registerAiIpc(win: BrowserWindow): void {
       let markdownText: string
 
       try {
-        resumeDocument = JSON.parse(cleanJson) as ResumeDocument
+        resumeDocument = normalizeResumeDocument(parseResumeDocument(cleanJson), profile)
         markdownText = resumeDocumentToMarkdown(resumeDocument)
       } catch {
-        // Fallback: treat raw output as markdown if JSON parsing fails
-        markdownText = cleanJson
+        resumeDocument = buildProfileResumeDocument(profile)
+        markdownText = resumeDocumentToMarkdown(resumeDocument)
       }
 
       const warnings = validateOutput(markdownText, profile)

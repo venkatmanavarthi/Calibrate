@@ -10,7 +10,7 @@ Output ONLY one valid JSON object matching this exact TypeScript shape. Do not r
     "title"?: string,  // concise professional title from the profile, usually the current or most recent job title
     "email"?: string,
     "phone"?: string,
-    "location"?: string,
+
     "linkedin"?: string,
     "github"?: string,
     "website"?: string
@@ -30,7 +30,7 @@ Output ONLY one valid JSON object matching this exact TypeScript shape. Do not r
       "left": string,        // company, institution, project, certification, or award name
       "right"?: string,      // date range, graduation date, or issue date
       "subleft"?: string,    // role title, degree, issuer, or technologies
-      "subright"?: string,   // location when present in the profile
+      "subright"?: string,
       "bullets"?: string[],  // achievement bullets; plain text only
       "body"?: string        // short paragraph only when bullets are not appropriate
     }>
@@ -47,14 +47,14 @@ Required section titles and layouts:
 - Awards & Certifications: layout "entries"; include only if profile.accomplishments has data.
 
 Entry mapping:
-- Professional Experience: left=company, right=startDate – endDate, subleft=title, subright=location, bullets=achievement bullets.
+- Professional Experience: left=company, right=startDate – endDate, subleft=title, bullets=achievement bullets.
 - Education: left=institution, right=graduationDate, subleft=degree + " in " + field.
 - Projects: left=name, right=startDate – endDate if present, subleft=technologiesUsed joined by comma, body=description, bullets=project bullets.
 - Certifications: left=name, right=issueDate – expiryDate if present, subleft=issuer, body=credential ID if present.
 - Awards & Certifications: left=title, right=date, body=description + impact.
 
 STYLE TARGET:
-- Match this compact DOCX structure: centered name/title/contact, uppercase section headings with thin rules, labeled skill lines, bold company/title rows with right-aligned dates, italic role/location rows, and bullet-heavy experience.
+- Match this compact DOCX structure: centered name/title/contact, uppercase section headings with thin rules, labeled skill lines, bold company/title rows with right-aligned dates, italic role rows, and bullet-heavy experience.
 - Keep bullets concise and factual, usually 16–26 words. Start with a strong verb.
 - Prefer the candidate's original metrics and technologies over generic claims. If no metric exists, write a specific non-quantified outcome from the source bullet.
 - For recent roles, use 4-6 bullets. For older roles, use 2-4 bullets. For projects, use 1-3 bullets.

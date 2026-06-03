@@ -130,7 +130,6 @@ function canonicalizeEntries(
         left: work.company,
         right: formatWorkDate(work),
         subleft: work.title,
-        subright: cleanText(work.location),
       }
     })
   }
@@ -171,7 +170,6 @@ function workToEntry(work: WorkEntry): ResumeDocumentEntry {
     left: work.company,
     right: formatWorkDate(work),
     subleft: work.title,
-    subright: cleanText(work.location),
     bullets: cleanArray(work.bullets),
   }
 }
@@ -344,7 +342,7 @@ export function normalizeResumeDocument(doc: ResumeDocument, profile: Experience
       title: inferTitle(profile) ?? cleanText(doc.contact?.title),
       email: cleanText(personal.email) ?? cleanText(doc.contact?.email),
       phone: cleanText(personal.phone) ?? cleanText(doc.contact?.phone),
-      location: cleanText(personal.location) ?? cleanText(doc.contact?.location),
+
       linkedin: cleanText(personal.linkedinUrl) ?? cleanText(doc.contact?.linkedin),
       github: cleanText(personal.githubUrl) ?? cleanText(doc.contact?.github),
       website: cleanText(personal.websiteUrl) ?? cleanText(doc.contact?.website),

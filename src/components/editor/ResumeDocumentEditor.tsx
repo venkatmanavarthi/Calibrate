@@ -124,7 +124,7 @@ function ContactSection({ doc, selected, editing, onSelect }: {
   const { contact } = doc
   if (contact.email) contactParts.push({ field: 'email', value: contact.email })
   if (contact.phone) contactParts.push({ field: 'phone', value: contact.phone })
-  if (contact.location) contactParts.push({ field: 'location', value: contact.location })
+
   if (contact.linkedin) contactParts.push({ field: 'linkedin', value: contact.linkedin })
   if (contact.github) contactParts.push({ field: 'github', value: contact.github })
   if (contact.website) contactParts.push({ field: 'website', value: contact.website })

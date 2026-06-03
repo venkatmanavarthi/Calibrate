@@ -33,7 +33,7 @@ export function resumeDocumentToText(doc: ResumeDocument): string {
     doc.contact.title,
     doc.contact.email,
     doc.contact.phone,
-    doc.contact.location,
+
     doc.contact.linkedin,
     doc.contact.github,
     doc.contact.website,

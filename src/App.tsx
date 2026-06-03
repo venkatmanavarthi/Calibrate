@@ -11,6 +11,7 @@ import PipelinePage from '@/pages/pipeline/PipelinePage'
 import ApplicationsPage from '@/pages/applications/ApplicationsPage'
 import PromptsPage from '@/pages/prompts/PromptsPage'
 import SettingsPage from '@/pages/settings/SettingsPage'
+import InterviewPage from '@/pages/interview/InterviewPage'
 import {
   Dialog,
   DialogContent,
@@ -90,6 +91,7 @@ export default function App() {
         <Route path="/pipeline" element={<PipelinePage />} />
         <Route path="/applications" element={<ApplicationsPage />} />
         <Route path="/generate" element={<GeneratorPage />} />
+        <Route path="/interview" element={<InterviewPage />} />
         <Route path="/prompts" element={<PromptsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Routes>

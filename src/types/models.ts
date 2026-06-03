@@ -113,9 +113,7 @@ export interface AppSettings {
   lmStudioConfig: LMStudioConfig
   encryptionAvailable: boolean
   theme: 'system' | 'light' | 'dark'
-  pdfPageSize: 'Letter' | 'A4' | 'Tabloid'
-  pdfMarginMm: number
-  pdfFont: 'Georgia' | 'Arial' | 'Helvetica' | 'Times New Roman' | 'Calibri' | 'Garamond'
+  pdfTemplateId: string
   configuredProviders: AIProvider[]
   onboardingCompleted: boolean
   jobKeywords: string[]
@@ -153,13 +151,7 @@ export interface RevisionRequest {
 export interface PdfExportRequest {
   resumeDocument?: import('./resume-document').ResumeDocument
   destFilePath: string
-  pageSize: 'Letter' | 'A4' | 'Tabloid'
-  marginMm: number
-  font: string
-  paddingTopMm?: number
-  paddingRightMm?: number
-  paddingBottomMm?: number
-  paddingLeftMm?: number
+  templateId: string
 }
 
 export interface ExportBundle {
@@ -398,6 +390,64 @@ export interface EditElementRequest {
   resumeDocument: import('./resume-document').ResumeDocument
   target: import('./resume-document').SelectionTarget
   instruction?: string
+  provider: AIProvider
+  model: string
+}
+
+// ─── Interview ────────────────────────────────────────────────────────────────
+
+export type InterviewType = 'job-fit' | 'leetcode' | 'system-design' | 'topic'
+
+export interface InterviewConfig {
+  type: InterviewType
+  durationMinutes: number
+  topics?: string[]
+  profileId?: string
+  jobDescription?: string
+  provider: AIProvider
+  model: string
+}
+
+export interface InterviewMessage {
+  id: string
+  role: 'interviewer' | 'interviewee'
+  content: string
+  timestamp: number
+}
+
+export type InterviewStatus = 'setup' | 'active' | 'time-up' | 'scoring' | 'complete'
+
+export interface InterviewQuestionFeedback {
+  question: string
+  answerSummary: string
+  score: number
+  feedback: string
+}
+
+export interface InterviewScore {
+  overall: number
+  technical: number
+  communication: number
+  problemSolving: number
+  strengths: string[]
+  improvements: string[]
+  recommendation: 'strong_yes' | 'yes' | 'maybe' | 'no'
+  summary: string
+  questionFeedback: InterviewQuestionFeedback[]
+}
+
+export interface InterviewMessageRequest {
+  requestId: string
+  config: InterviewConfig
+  messages: InterviewMessage[]
+  turnNumber: number
+  provider: AIProvider
+  model: string
+}
+
+export interface InterviewScoreRequest {
+  config: InterviewConfig
+  messages: InterviewMessage[]
   provider: AIProvider
   model: string
 }

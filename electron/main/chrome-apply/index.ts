@@ -75,9 +75,7 @@ async function buildPdf(scoredJob: ScoredJob): Promise<string | null> {
   await exportToPdf({
     resumeDocument: scoredJob.resumeDocument,
     destFilePath: destPath,
-    pageSize: settings.pdfPageSize,
-    marginMm: settings.pdfMarginMm,
-    font: settings.pdfFont,
+    templateId: settings.pdfTemplateId,
   })
   return destPath
 }

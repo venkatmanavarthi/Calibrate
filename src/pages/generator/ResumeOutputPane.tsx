@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { FileDown, SlidersHorizontal, X, BarChart2, Mail } from 'lucide-react'
+import { FileDown, BarChart2, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import ResumeDocumentEditor, { type SelectionTarget } from '@/components/editor/ResumeDocumentEditor'
@@ -9,7 +9,6 @@ import ResumeRatingPanel from '@/components/shared/ResumeRatingPanel'
 import PdfCookingAnimation from '@/components/shared/PdfCookingAnimation'
 import { useGeneratorStore } from '@/stores/generator.store'
 import { useSettingsStore } from '@/stores/settings.store'
-import type { AppSettings } from '@/types/models'
 
 export default function ResumeOutputPane() {
   const {
@@ -26,7 +25,7 @@ export default function ResumeOutputPane() {
   const [selectedTarget, setSelectedTarget] = useState<SelectionTarget | null>(null)
   const [selectedRect, setSelectedRect] = useState<DOMRect | null>(null)
   const [editingTarget, setEditingTarget] = useState<SelectionTarget | null>(null)
-  const [showStylePanel, setShowStylePanel] = useState(false)
+
   const [showRatingPanel, setShowRatingPanel] = useState(false)
 
   useEffect(() => {
@@ -35,10 +34,6 @@ export default function ResumeOutputPane() {
     }
   }, [resumeDocument])
 
-  const [padTop, setPadTop] = useState(12.7)
-  const [padRight, setPadRight] = useState(12.7)
-  const [padBottom, setPadBottom] = useState(12.7)
-  const [padLeft, setPadLeft] = useState(12.7)
   const [rightPanelWidth, setRightPanelWidth] = useState(220)
   const rightPanelRef = useRef<HTMLDivElement>(null)
 
@@ -74,13 +69,7 @@ export default function ResumeOutputPane() {
       await window.api.pdfExport({
         resumeDocument,
         destFilePath: dest.filePath,
-        pageSize: settings.pdfPageSize,
-        marginMm: settings.pdfMarginMm,
-        font: settings.pdfFont,
-        paddingTopMm: padTop,
-        paddingRightMm: padRight,
-        paddingBottomMm: padBottom,
-        paddingLeftMm: padLeft,
+        templateId: settings.pdfTemplateId,
       })
     } finally {
       setExporting(false)
@@ -94,13 +83,7 @@ export default function ResumeOutputPane() {
       await window.api.pdfEmailExport({
         resumeDocument,
         destFilePath: '',
-        pageSize: settings.pdfPageSize,
-        marginMm: settings.pdfMarginMm,
-        font: settings.pdfFont,
-        paddingTopMm: padTop,
-        paddingRightMm: padRight,
-        paddingBottomMm: padBottom,
-        paddingLeftMm: padLeft,
+        templateId: settings.pdfTemplateId,
       })
     } finally {
       setEmailing(false)
@@ -206,33 +189,16 @@ export default function ResumeOutputPane() {
         {settings && (
           <div className="ml-auto flex items-center gap-2">
             <Select
-              value={settings.pdfFont}
-              onValueChange={(v) => save({ pdfFont: v as AppSettings['pdfFont'] })}
+              value={settings.pdfTemplateId}
+              onValueChange={(v) => save({ pdfTemplateId: v })}
             >
-              <SelectTrigger className="h-7 text-xs w-[140px]">
+              <SelectTrigger className="h-7 text-xs w-[100px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Georgia">Georgia</SelectItem>
-                <SelectItem value="Garamond">Garamond</SelectItem>
-                <SelectItem value="Times New Roman">Times New Roman</SelectItem>
-                <SelectItem value="Calibri">Calibri</SelectItem>
-                <SelectItem value="Arial">Arial</SelectItem>
-                <SelectItem value="Helvetica">Helvetica</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={settings.pdfPageSize}
-              onValueChange={(v) => save({ pdfPageSize: v as 'Letter' | 'A4' | 'Tabloid' })}
-            >
-              <SelectTrigger className="h-7 text-xs w-[80px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Letter">Letter</SelectItem>
-                <SelectItem value="A4">A4</SelectItem>
-                <SelectItem value="Tabloid">Tabloid</SelectItem>
+                <SelectItem value="classic">Classic</SelectItem>
+                <SelectItem value="modern">Modern</SelectItem>
+                <SelectItem value="compact">Compact</SelectItem>
               </SelectContent>
             </Select>
 
@@ -259,19 +225,9 @@ export default function ResumeOutputPane() {
 
             <Button
               size="sm"
-              variant={showStylePanel ? 'secondary' : 'ghost'}
-              className="h-7 w-7 p-0"
-              onClick={() => { setShowStylePanel((v) => !v); setShowRatingPanel(false) }}
-              title="Margins"
-            >
-              <SlidersHorizontal size={13} />
-            </Button>
-
-            <Button
-              size="sm"
               variant={showRatingPanel ? 'secondary' : 'ghost'}
               className="h-7 w-7 p-0 relative"
-              onClick={() => { setShowRatingPanel((v) => !v); setShowStylePanel(false) }}
+              onClick={() => setShowRatingPanel((v) => !v)}
               title={isRating ? 'Scoring resume…' : rating ? `Score: ${rating.overallScore}/100` : 'Rate Resume'}
               disabled={!resumeDocument || !jobDescription}
             >
@@ -350,60 +306,7 @@ export default function ResumeOutputPane() {
           </div>
         )}
 
-        {/* Right style sidebar */}
-        {showStylePanel && (
-          <div ref={rightPanelRef} style={{ width: rightPanelWidth }} className="flex-shrink-0 flex">
-            <div
-              className="w-1 flex-shrink-0 cursor-col-resize bg-border hover:bg-primary/40 active:bg-primary/60 transition-colors relative"
-              onMouseDown={handleRightPanelDividerMouseDown}
-            >
-              <div className="absolute inset-y-0 -left-1 -right-1" />
-            </div>
-            <div className="flex-1 min-w-0 flex flex-col bg-background">
-              <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30">
-                <span className="text-xs font-medium">Margins (mm)</span>
-                <button
-                  onClick={() => setShowStylePanel(false)}
-                  className="text-muted-foreground hover:text-foreground rounded p-0.5 transition-colors"
-                >
-                  <X size={12} />
-                </button>
-              </div>
 
-              <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-5">
-                <div className="flex flex-col gap-1.5">
-                  {([
-                    { label: 'Top', value: padTop, set: setPadTop },
-                    { label: 'Right', value: padRight, set: setPadRight },
-                    { label: 'Bottom', value: padBottom, set: setPadBottom },
-                    { label: 'Left', value: padLeft, set: setPadLeft },
-                  ] as const).map(({ label, value, set: setFn }) => (
-                    <div key={label} className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground w-12">{label}</span>
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="number" min={0} max={50} step={0.1} value={value}
-                          onChange={(e) => setFn(Math.max(0, Math.min(50, Number(e.target.value))))}
-                          className="w-14 text-center text-xs h-7 rounded border border-border bg-background tabular-nums focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                        <span className="text-[10px] text-muted-foreground">mm</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="border-t p-2">
-                <Button
-                  variant="ghost" size="sm" className="w-full h-7 text-xs text-muted-foreground"
-                  onClick={() => { setPadTop(12.7); setPadRight(12.7); setPadBottom(12.7); setPadLeft(12.7) }}
-                >
-                  Reset to defaults
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )

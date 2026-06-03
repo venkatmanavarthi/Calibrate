@@ -19,9 +19,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   },
   encryptionAvailable: safeStorage.isEncryptionAvailable(),
   theme: 'system',
-  pdfPageSize: 'Letter',
-  pdfMarginMm: 12.7,
-  pdfFont: 'Calibri',
+  pdfTemplateId: 'classic',
   configuredProviders: [],
   onboardingCompleted: false,
   jobKeywords: []

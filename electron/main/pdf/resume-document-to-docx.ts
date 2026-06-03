@@ -6,89 +6,145 @@ import {
 import type { PdfExportRequest } from '../../../src/types/models'
 import type { ResumeDocument, ResumeDocumentSection } from '../../../src/types/resume-document'
 
-function textRun(text: string, size: number, font: string): TextRun[] {
-  return [new TextRun({ text, size, font })]
+const FONT = 'Calibri'
+
+export interface DocxTemplate {
+  id: string
+  label: string
+  margin: { top: number; right: number; bottom: number; left: number }
+  sizes: { name: number; sectionHeader: number; body: number; entry: number }
+  sectionHeader: {
+    bold: boolean
+    uppercase: boolean
+    color: string
+    border: boolean
+    spacingBefore: number
+    spacingAfter: number
+  }
+  linkColor: string
 }
 
-// Page sizes in twips
-const PAGE_SIZES = {
-  Letter:  { width: 12240, height: 15840 },
+export const DOCX_TEMPLATES: DocxTemplate[] = [
+  {
+    id: 'classic',
+    label: 'Classic',
+    margin: { top: 720, right: 720, bottom: 720, left: 720 },
+    sizes: { name: 36, sectionHeader: 24, body: 20, entry: 22 },
+    sectionHeader: { bold: true, uppercase: true, color: '000000', border: true, spacingBefore: 240, spacingAfter: 80 },
+    linkColor: '0563C1',
+  },
+  {
+    id: 'modern',
+    label: 'Modern',
+    margin: { top: 720, right: 720, bottom: 720, left: 720 },
+    sizes: { name: 36, sectionHeader: 22, body: 20, entry: 22 },
+    sectionHeader: { bold: true, uppercase: true, color: '1F4E79', border: false, spacingBefore: 300, spacingAfter: 100 },
+    linkColor: '1F4E79',
+  },
+  {
+    id: 'compact',
+    label: 'Compact',
+    margin: { top: 576, right: 576, bottom: 576, left: 576 },
+    sizes: { name: 32, sectionHeader: 22, body: 19, entry: 21 },
+    sectionHeader: { bold: true, uppercase: true, color: '000000', border: true, spacingBefore: 160, spacingAfter: 60 },
+    linkColor: '0563C1',
+  },
+]
+
+function getTemplate(id: string): DocxTemplate {
+  return DOCX_TEMPLATES.find((t) => t.id === id) ?? DOCX_TEMPLATES[0]
 }
 
-function sectionHeader(text: string, font: string): Paragraph {
+// Letter page size in twips
+const PAGE_SIZE = { width: 12240, height: 15840 }
+
+function textRun(text: string, size: number): TextRun[] {
+  return [new TextRun({ text, size, font: FONT })]
+}
+
+function sectionHeader(text: string, t: DocxTemplate): Paragraph {
+  const label = t.sectionHeader.uppercase ? text.toUpperCase() : text
   return new Paragraph({
-    spacing: { before: 240, after: 80 },
-    border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '000000', space: 2 } },
-    children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 24, font })],
+    spacing: { before: t.sectionHeader.spacingBefore, after: t.sectionHeader.spacingAfter },
+    border: t.sectionHeader.border
+      ? { bottom: { style: BorderStyle.SINGLE, size: 6, color: '000000', space: 2 } }
+      : {},
+    children: [new TextRun({
+      text: label,
+      bold: t.sectionHeader.bold,
+      size: t.sizes.sectionHeader,
+      font: FONT,
+      color: t.sectionHeader.color,
+    })],
   })
 }
 
-function bullet(text: string, font: string): Paragraph {
+function bullet(text: string, t: DocxTemplate): Paragraph {
   return new Paragraph({
     numbering: { reference: 'bullets', level: 0 },
     alignment: AlignmentType.JUSTIFIED,
     spacing: { after: 60 },
-    children: textRun(text, 20, font),
+    children: textRun(text, t.sizes.body),
   })
 }
 
-function titleRightDate(left: string, right: string, font: string, contentWidth: number): Paragraph {
+function titleRightDate(left: string, right: string, t: DocxTemplate, contentWidth: number): Paragraph {
   return new Paragraph({
     spacing: { before: 120, after: 40 },
     tabStops: [{ type: TabStopType.RIGHT, position: contentWidth }],
     children: [
-      new TextRun({ text: left, bold: true, size: 22, font }),
-      new TextRun({ text: '\t' + right, size: 22, font, italics: true }),
+      new TextRun({ text: left, bold: true, size: t.sizes.entry, font: FONT }),
+      new TextRun({ text: '\t' + right, size: t.sizes.entry, font: FONT, italics: true }),
     ],
   })
 }
 
-function subRoleLine(left: string, right: string | undefined, font: string, contentWidth: number): Paragraph {
+function subRoleLine(left: string, right: string | undefined, t: DocxTemplate, contentWidth: number): Paragraph {
   return new Paragraph({
     spacing: { after: 60 },
     tabStops: [{ type: TabStopType.RIGHT, position: contentWidth }],
     children: [
-      new TextRun({ text: left, italics: true, size: 22, font }),
-      ...(right ? [new TextRun({ text: '\t' + right, italics: true, size: 22, font })] : []),
+      new TextRun({ text: left, italics: true, size: t.sizes.entry, font: FONT }),
+      ...(right ? [new TextRun({ text: '\t' + right, italics: true, size: t.sizes.entry, font: FONT })] : []),
     ],
   })
 }
 
-function skillLine(label: string, value: string, font: string): Paragraph {
+function skillLine(label: string, value: string, t: DocxTemplate): Paragraph {
   return new Paragraph({
     alignment: AlignmentType.JUSTIFIED,
     spacing: { after: 40 },
     children: [
-      new TextRun({ text: label + ': ', bold: true, size: 20, font }),
-      ...textRun(value, 20, font),
+      new TextRun({ text: label + ': ', bold: true, size: t.sizes.body, font: FONT }),
+      ...textRun(value, t.sizes.body),
     ],
   })
 }
 
-function buildContactParagraphs(doc: ResumeDocument, font: string): Paragraph[] {
+function buildContactParagraphs(doc: ResumeDocument, t: DocxTemplate): Paragraph[] {
   const paras: Paragraph[] = []
 
   paras.push(new Paragraph({
     alignment: AlignmentType.CENTER,
     spacing: { after: 40 },
-    children: [new TextRun({ text: doc.contact.name, bold: true, size: 36, font })],
+    children: [new TextRun({ text: doc.contact.name, bold: true, size: t.sizes.name, font: FONT })],
   }))
 
   if (doc.contact.title) {
     paras.push(new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { after: 80 },
-      children: [new TextRun({ text: doc.contact.title, size: 24, font })],
+      children: [new TextRun({ text: doc.contact.title, size: 24, font: FONT })],
     }))
   }
 
-  const plainContact = [doc.contact.email, doc.contact.phone, doc.contact.location]
+  const plainContact = [doc.contact.email, doc.contact.phone]
     .filter(Boolean) as string[]
   if (plainContact.length) {
     paras.push(new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { after: 40 },
-      children: [new TextRun({ text: plainContact.join(' | '), size: 20, font })],
+      children: [new TextRun({ text: plainContact.join(' | '), size: t.sizes.body, font: FONT })],
     }))
   }
 
@@ -102,9 +158,9 @@ function buildContactParagraphs(doc: ResumeDocument, font: string): Paragraph[] 
     linkItems.forEach((item, i) => {
       children.push(new ExternalHyperlink({
         link: item.url,
-        children: [new TextRun({ text: item.label, size: 20, font, color: '0563C1', underline: {} })],
+        children: [new TextRun({ text: item.label, size: t.sizes.body, font: FONT, color: t.linkColor, underline: {} })],
       }))
-      if (i < linkItems.length - 1) children.push(new TextRun({ text: ' | ', size: 20, font }))
+      if (i < linkItems.length - 1) children.push(new TextRun({ text: ' | ', size: t.sizes.body, font: FONT }))
     })
     paras.push(new Paragraph({
       alignment: AlignmentType.CENTER,
@@ -116,14 +172,14 @@ function buildContactParagraphs(doc: ResumeDocument, font: string): Paragraph[] 
   return paras
 }
 
-function buildSection(section: ResumeDocumentSection, font: string, contentWidth: number): Paragraph[] {
-  const paras: Paragraph[] = [sectionHeader(section.title, font)]
+function buildSection(section: ResumeDocumentSection, t: DocxTemplate, contentWidth: number): Paragraph[] {
+  const paras: Paragraph[] = [sectionHeader(section.title, t)]
 
   if (section.layout === 'summary' && section.text) {
     paras.push(new Paragraph({
       alignment: AlignmentType.JUSTIFIED,
       spacing: { after: 80 },
-      children: textRun(section.text, 20, font),
+      children: textRun(section.text, t.sizes.body),
     }))
   }
 
@@ -131,12 +187,12 @@ function buildSection(section: ResumeDocumentSection, font: string, contentWidth
     for (const skill of section.skills) {
       const colonIdx = skill.indexOf(': ')
       if (colonIdx !== -1) {
-        paras.push(skillLine(skill.slice(0, colonIdx), skill.slice(colonIdx + 2), font))
+        paras.push(skillLine(skill.slice(0, colonIdx), skill.slice(colonIdx + 2), t))
       } else {
         paras.push(new Paragraph({
           alignment: AlignmentType.JUSTIFIED,
           spacing: { after: 40 },
-          children: textRun(skill, 20, font),
+          children: textRun(skill, t.sizes.body),
         }))
       }
     }
@@ -144,16 +200,16 @@ function buildSection(section: ResumeDocumentSection, font: string, contentWidth
 
   if (section.layout === 'entries' && section.entries?.length) {
     for (const entry of section.entries) {
-      paras.push(titleRightDate(entry.left, entry.right ?? '', font, contentWidth))
-      if (entry.subleft || entry.subright) paras.push(subRoleLine(entry.subleft ?? '', entry.subright, font, contentWidth))
+      paras.push(titleRightDate(entry.left, entry.right ?? '', t, contentWidth))
+      if (entry.subleft || entry.subright) paras.push(subRoleLine(entry.subleft ?? '', entry.subright, t, contentWidth))
       if (entry.body) {
         paras.push(new Paragraph({
           alignment: AlignmentType.JUSTIFIED,
           spacing: { after: 60 },
-          children: textRun(entry.body, 20, font),
+          children: textRun(entry.body, t.sizes.body),
         }))
       }
-      for (const b of entry.bullets ?? []) paras.push(bullet(b, font))
+      for (const b of entry.bullets ?? []) paras.push(bullet(b, t))
     }
   }
 
@@ -162,26 +218,19 @@ function buildSection(section: ResumeDocumentSection, font: string, contentWidth
 
 export async function resumeDocumentToDocx(req: PdfExportRequest): Promise<Buffer> {
   const doc = req.resumeDocument!
-  const font = 'Calibri'
-
-  const marginTop = 720
-  const marginRight = 720
-  const marginBottom = 720
-  const marginLeft = 720
-
-  const pageSize = PAGE_SIZES.Letter
-  const contentWidth = pageSize.width - marginLeft - marginRight
+  const t = getTemplate(req.templateId)
+  const contentWidth = PAGE_SIZE.width - t.margin.left - t.margin.right
 
   const children: Paragraph[] = [
-    ...buildContactParagraphs(doc, font),
+    ...buildContactParagraphs(doc, t),
     ...doc.sections
       .filter((s) => !s.hidden)
-      .flatMap((s) => buildSection(s, font, contentWidth)),
+      .flatMap((s) => buildSection(s, t, contentWidth)),
   ]
 
   const document = new Document({
     styles: {
-      default: { document: { run: { font, size: 20 } } },
+      default: { document: { run: { font: FONT, size: t.sizes.body } } },
     },
     numbering: {
       config: [
@@ -203,8 +252,8 @@ export async function resumeDocumentToDocx(req: PdfExportRequest): Promise<Buffe
       {
         properties: {
           page: {
-            size: pageSize,
-            margin: { top: marginTop, right: marginRight, bottom: marginBottom, left: marginLeft },
+            size: PAGE_SIZE,
+            margin: t.margin,
           },
         },
         children,

@@ -24,7 +24,10 @@ import type {
   GmailConnection,
   ChromeApplyConnection,
   ChromeApplyStartRequest,
-  ApplyRun
+  ApplyRun,
+  InterviewMessageRequest,
+  InterviewScoreRequest,
+  InterviewScore
 } from './models'
 import type { ResumeDocument } from './resume-document'
 
@@ -151,6 +154,10 @@ export interface WindowAPI {
   sessionAuthenticate: (atsDomain: string) => Promise<void>
   sessionClear: (atsDomain: string) => Promise<{ ok: true }>
 
+  // Interview
+  interviewSendMessage: (req: InterviewMessageRequest) => Promise<void>
+  interviewGetScore: (req: InterviewScoreRequest) => Promise<InterviewScore>
+
   // Shell
   shellOpenExternal: (url: string) => Promise<void>
 
@@ -197,5 +204,8 @@ export type {
   GmailConnection,
   ChromeApplyConnection,
   ChromeApplyStartRequest,
-  ApplyRun
+  ApplyRun,
+  InterviewMessageRequest,
+  InterviewScoreRequest,
+  InterviewScore
 }

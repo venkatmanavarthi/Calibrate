@@ -7,7 +7,9 @@ import type {
   ChromeApplyProgressPayload,
   ScoredJob,
   ApplicationDefaults,
-  ChromeApplyStartRequest
+  ChromeApplyStartRequest,
+  InterviewMessageRequest,
+  InterviewScoreRequest
 } from '../../src/types/ipc'
 
 const api: WindowAPI = {
@@ -138,6 +140,10 @@ const api: WindowAPI = {
   // Session auth
   sessionAuthenticate: (atsDomain) => ipcRenderer.invoke('session:authenticate', atsDomain),
   sessionClear: (atsDomain) => ipcRenderer.invoke('session:clear', atsDomain),
+
+  // Interview
+  interviewSendMessage: (req: InterviewMessageRequest) => ipcRenderer.invoke('interview:sendMessage', req),
+  interviewGetScore: (req: InterviewScoreRequest) => ipcRenderer.invoke('interview:getScore', req),
 
   // Shell
   shellOpenExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
